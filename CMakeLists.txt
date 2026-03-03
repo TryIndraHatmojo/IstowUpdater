@@ -10,6 +10,7 @@ qt_standard_project_setup(REQUIRES 6.8)
 
 qt_add_executable(appIstowUpdater
     main.cpp
+    src/entity/Ship.h
     src/repository/repository.h
     src/repository/repository.cpp
     src/repository/localrepository.h
@@ -38,6 +39,7 @@ set_target_properties(appIstowUpdater PROPERTIES
 )
 
 target_include_directories(appIstowUpdater PRIVATE
+    src/entity
     src/repository
     src/models
 )

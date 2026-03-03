@@ -1,6 +1,7 @@
 #include "localrepository.h"
 #include <QStandardPaths>
 #include <QDir>
+#include <QDebug>
 
 LocalRepository* LocalRepository::localRepository = nullptr;
 
@@ -77,6 +78,25 @@ void LocalRepository::init()
     if (!hasCurrentVoyageId) {
         query = QString("ALTER TABLE voyagetbl ADD COLUMN current_voyage_id INT DEFAULT -1;");
         this->executeQuery(query);
+    }
+
+    // Seed data dummy untuk development (hanya jika tabel masih kosong)
+    QueryResult *countResult = this->executeQuery("SELECT COUNT(*) as total FROM shiptbl");
+    QJsonObject countRow = countResult->getRawOne();
+    int total = countRow.value("total").toInt();
+    qDebug() << "[LocalRepository] Jumlah data di shiptbl:" << total;
+
+    if (total == 0) {
+        qDebug() << "[LocalRepository] Tabel kosong, insert data dummy...";
+        this->executeQuery("INSERT INTO shiptbl (idship, tipe, nama, company, dbid, fileprefix, version) VALUES "
+                           "(1, 'Container', 'KM NUSANTARA 1', 'PT Pelni', 'NUS01', 'nus1', 1),"
+                           "(2, 'Tanker',    'MT BAHARI JAYA', 'PT Pertamina', 'BAH02', 'bah2', 1),"
+                           "(3, 'Bulk',      'MV SINAR ASIA',  'PT SPIL', 'SIN03', 'sin3', 1)");
+        this->executeQuery("INSERT INTO voyagetbl (shiptbl_id, novoyage, current_voyage_id) VALUES "
+                           "(1, 'V001/2026', 1),"
+                           "(2, 'V002/2026', 2),"
+                           "(3, 'V003/2026', 3)");
+        qDebug() << "[LocalRepository] Data dummy berhasil di-insert.";
     }
 }
 

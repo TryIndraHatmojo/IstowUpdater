@@ -109,6 +109,7 @@ Window {
                                 height: 44
                                 model: shipModel.ships
                                 textRole: "nama"
+                                valueRole: "idship"
                                 displayText: currentIndex === -1 ? "— Pilih Kapal —" : currentText
                                 font.pixelSize: 14
 
@@ -137,7 +138,7 @@ Window {
                                     contentItem: ColumnLayout {
                                         spacing: 2
                                         Text {
-                                            text: modelData.nama ?? ""
+                                            text: modelData["nama"] ?? ""
                                             font.pixelSize: 14
                                             font.bold: true
                                             color: "#2D3748"
@@ -145,11 +146,11 @@ Window {
                                             Layout.fillWidth: true
                                         }
                                         Text {
-                                            text: modelData.company ?? ""
+                                            text: modelData["company"] ?? ""
                                             font.pixelSize: 11
                                             color: "#718096"
                                             elide: Text.ElideRight
-                                            visible: (modelData.company ?? "") !== ""
+                                            visible: (modelData["company"] ?? "") !== ""
                                             Layout.fillWidth: true
                                         }
                                     }
@@ -168,7 +169,7 @@ Window {
 
                                     contentItem: ListView {
                                         clip: true
-                                        implicitHeight: contentHeight
+                                        implicitHeight: Math.min(contentHeight, 240)
                                         model: shipComboBox.delegateModel
                                         currentIndex: shipComboBox.highlightedIndex
                                         ScrollIndicator.vertical: ScrollIndicator {}
@@ -185,7 +186,7 @@ Window {
                                 onCurrentIndexChanged: {
                                     if (currentIndex >= 0) {
                                         let ship = shipModel.ships[currentIndex]
-                                        console.log("[MainPage] Kapal dipilih:", ship.nama, "| ID:", ship.idship)
+                                        console.log("[MainPage] Kapal dipilih:", ship["nama"], "| ID:", ship["idship"])
                                     }
                                 }
                             }
@@ -206,13 +207,13 @@ Window {
                                     spacing: 4
 
                                     property var selectedShip: shipComboBox.currentIndex >= 0
-                                                               ? shipModel.ships[shipComboBox.currentIndex]
+                                                               ? shipModel.getShipAt(shipComboBox.currentIndex)
                                                                : null
 
-                                    Text { text: "Tipe: "             + (shipInfo.selectedShip?.tipe    ?? "-"); font.pixelSize: 12; color: "#2C5282" }
-                                    Text { text: "Perusahaan: "       + (shipInfo.selectedShip?.company ?? "-"); font.pixelSize: 12; color: "#2C5282" }
-                                    Text { text: "DB ID: "            + (shipInfo.selectedShip?.dbid    ?? "-"); font.pixelSize: 12; color: "#2C5282" }
-                                    Text { text: "Voyage Terakhir: "  + (shipInfo.selectedShip?.novoyage ?? "-"); font.pixelSize: 12; color: "#2C5282" }
+                                    Text { text: "Tipe: "             + (shipInfo.selectedShip?.["tipe"]     ?? "-"); font.pixelSize: 12; color: "#2C5282" }
+                                    Text { text: "Perusahaan: "       + (shipInfo.selectedShip?.["company"]  ?? "-"); font.pixelSize: 12; color: "#2C5282" }
+                                    Text { text: "DB ID: "            + (shipInfo.selectedShip?.["dbid"]     ?? "-"); font.pixelSize: 12; color: "#2C5282" }
+                                    Text { text: "Voyage Terakhir: " + (shipInfo.selectedShip?.["novoyage"] ?? "-"); font.pixelSize: 12; color: "#2C5282" }
                                 }
                             }
                         }
@@ -239,7 +240,7 @@ Window {
 
                             onClicked: {
                                 let ship = shipModel.ships[shipComboBox.currentIndex]
-                                console.log("[MainPage] Lanjutkan dengan kapal:", ship.nama)
+                                console.log("[MainPage] Lanjutkan dengan kapal:", ship["nama"])
                                 // TODO: navigasi ke halaman berikutnya
                             }
                         }
@@ -252,11 +253,9 @@ Window {
                     text: "Tidak ada data kapal tersedia."
                     font.pixelSize: 13
                     color: "#A0AEC0"
-                    visible: !shipModel.loading && shipModel.ships.length === 0
+                    visible: shipModel.ships.length === 0
                 }
             }
         }
     }
-
-    
 }
