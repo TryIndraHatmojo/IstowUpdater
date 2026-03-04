@@ -17,12 +17,15 @@ qt_add_executable(appIstowUpdater
     src/repository/localrepository.cpp
     src/models/ShipModel.h
     src/models/ShipModel.cpp
+    src/models/IstowImporter.h
+    src/models/IstowImporter.cpp
 )
 
 qt_add_qml_module(appIstowUpdater
     URI IstowUpdater
     QML_FILES
         src/pages/MainPage.qml
+        src/pages/BrowseDotIstow.qml
     RESOURCES
         qtquickcontrols2.conf
 )

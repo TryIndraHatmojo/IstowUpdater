@@ -20,6 +20,7 @@ public:
 
     Q_INVOKABLE QVariantMap getShipAt(int index) const;
     Q_INVOKABLE int count() const;
+    Q_INVOKABLE void reload();
 
 signals:
     void shipsChanged();

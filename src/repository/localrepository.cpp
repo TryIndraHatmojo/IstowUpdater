@@ -124,3 +124,45 @@ QJsonArray LocalRepository::getAllShip()
                             "LEFT JOIN voyagetbl ON shiptbl.idship = voyagetbl.shiptbl_id");
     return this->executeQuery(query)->getRawMany();
 }
+
+// ──────────────────────────────────────────────
+// deleteShip — Hapus data kapal dari shiptbl dan voyagetbl
+// ──────────────────────────────────────────────
+
+void LocalRepository::deleteShip(int idship)
+{
+    qDebug() << "[LocalRepository] deleteShip: idship =" << idship;
+
+    QString query = QString("DELETE FROM voyagetbl WHERE shiptbl_id = %1").arg(idship);
+    this->executeQuery(query);
+
+    query = QString("DELETE FROM shiptbl WHERE idship = %1").arg(idship);
+    this->executeQuery(query);
+
+    qDebug() << "[LocalRepository] deleteShip selesai untuk idship:" << idship;
+}
+
+// ──────────────────────────────────────────────
+// insertShip — Insert data kapal baru ke shiptbl
+// ──────────────────────────────────────────────
+
+void LocalRepository::insertShip(int idship, const QString &tipe, const QString &nama,
+                                  const QString &dbid, const QString &fileprefix,
+                                  const QString &company, int version)
+{
+    qDebug() << "[LocalRepository] insertShip:" << nama << "| idship:" << idship;
+
+    QString query = QString(
+        "INSERT INTO shiptbl(idship, tipe, nama, company, dbid, fileprefix, lastupdate, version) "
+        "VALUES(%1, '%2', '%3', '%4', '%5', '%6', strftime('%%s','now'), %7)")
+        .arg(idship)
+        .arg(tipe)
+        .arg(nama)
+        .arg(company)
+        .arg(dbid)
+        .arg(fileprefix)
+        .arg(version);
+
+    this->executeQuery(query);
+    qDebug() << "[LocalRepository] insertShip selesai:" << nama;
+}

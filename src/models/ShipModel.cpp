@@ -52,3 +52,9 @@ void ShipModel::loadShips()
     qDebug() << "[ShipModel] loadShips: total" << m_shipEntities.size() << "kapal dimuat.";
     emit shipsChanged();
 }
+
+void ShipModel::reload()
+{
+    qDebug() << "[ShipModel] reload: refresh data kapal...";
+    loadShips();
+}

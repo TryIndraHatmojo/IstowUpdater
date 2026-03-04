@@ -14,6 +14,11 @@ public:
     void init();
     QJsonArray getAllShip();
 
+    void insertShip(int idship, const QString &tipe, const QString &nama,
+                    const QString &dbid, const QString &fileprefix,
+                    const QString &company, int version);
+    void deleteShip(int idship);
+
 private:
     static LocalRepository *localRepository;
 };

@@ -1,0 +1,412 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.Dialogs
+import IstowUpdater
+
+Item {
+    id: root
+
+    // ── Signal untuk navigasi kembali ──────────────────
+    signal backRequested()
+
+    // ── Referensi model ────────────────────────────────
+    property var shipModel: null
+
+    // ── IstowImporter instance ─────────────────────────
+    IstowImporter {
+        id: importer
+
+        onImportFinished: function(success, message) {
+            if (success && shipModel) {
+                shipModel.reload()
+            }
+            resultPopup.show(success, message)
+        }
+    }
+
+    // ── FileDialog ─────────────────────────────────────
+    FileDialog {
+        id: fileDialog
+        title: "Pilih file .istow"
+        nameFilters: ["iStow Files (*.istow)"]
+        onAccepted: {
+            let path = selectedFile.toString()
+            selectedFilePath.text = path
+            console.log("[BrowseDotIstow] File dipilih:", path)
+
+            // Baca metadata otomatis
+            if (importer.readDetails(path)) {
+                detailsCard.visible = true
+                importBtn.enabled = true
+            } else {
+                detailsCard.visible = false
+                importBtn.enabled = false
+            }
+        }
+    }
+
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: 0
+
+        // ── Header ─────────────────────────────────────
+        Rectangle {
+            Layout.fillWidth: true
+            height: 60
+            color: "#1A3A5C"
+
+            RowLayout {
+                anchors {
+                    fill: parent
+                    leftMargin: 20
+                    rightMargin: 20
+                }
+
+                Button {
+                    text: "← Kembali"
+                    flat: true
+                    font.pixelSize: 14
+                    contentItem: Text {
+                        text: parent.text
+                        font: parent.font
+                        color: "#FFFFFF"
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    background: Rectangle {
+                        color: parent.hovered ? "#2B6CB0" : "transparent"
+                        radius: 6
+                    }
+                    onClicked: root.backRequested()
+                }
+
+                Item { Layout.fillWidth: true }
+
+                Text {
+                    text: "Import File .istow"
+                    font.pixelSize: 20
+                    font.bold: true
+                    color: "#FFFFFF"
+                }
+
+                Item { Layout.fillWidth: true }
+                // Spacer untuk balance
+                Item { width: 90 }
+            }
+        }
+
+        // ── Konten Utama ───────────────────────────────
+        Item {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+
+            ScrollView {
+                anchors.fill: parent
+                contentWidth: availableWidth
+
+                ColumnLayout {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: Math.min(parent.width - 48, 520)
+                    spacing: 16
+
+                    Item { height: 8 } // Top spacing
+
+                    // ── Card: File Picker ───────────────
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: filePickerContent.implicitHeight + 48
+                        radius: 12
+                        color: "#FFFFFF"
+                        border.color: "#E2E8F0"
+                        border.width: 1
+
+                        ColumnLayout {
+                            id: filePickerContent
+                            anchors { fill: parent; margins: 24 }
+                            spacing: 16
+
+                            Text {
+                                text: "📁 Pilih File .istow"
+                                font.pixelSize: 16
+                                font.bold: true
+                                color: "#1A3A5C"
+                            }
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 1
+                                color: "#E2E8F0"
+                            }
+
+                            Text {
+                                text: "Pilih file .istow yang berisi data kapal untuk di-import. Asset akan diekstrak ke folder kerja."
+                                font.pixelSize: 12
+                                color: "#718096"
+                                wrapMode: Text.Wrap
+                                Layout.fillWidth: true
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 12
+
+                                Button {
+                                    text: "Browse..."
+                                    font.pixelSize: 14
+                                    font.bold: true
+                                    implicitHeight: 40
+
+                                    background: Rectangle {
+                                        radius: 8
+                                        color: parent.hovered ? "#2B6CB0" : "#1A3A5C"
+                                    }
+
+                                    contentItem: Text {
+                                        text: parent.text
+                                        font: parent.font
+                                        color: "#FFFFFF"
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+
+                                    onClicked: fileDialog.open()
+                                }
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    height: 40
+                                    radius: 8
+                                    color: "#F7FAFC"
+                                    border.color: "#CBD5E0"
+                                    border.width: 1
+
+                                    Text {
+                                        id: selectedFilePath
+                                        anchors {
+                                            fill: parent
+                                            leftMargin: 12
+                                            rightMargin: 12
+                                        }
+                                        text: "Belum ada file dipilih"
+                                        font.pixelSize: 12
+                                        color: text === "Belum ada file dipilih" ? "#A0AEC0" : "#2D3748"
+                                        verticalAlignment: Text.AlignVCenter
+                                        elide: Text.ElideMiddle
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // ── Card: Metadata ──────────────────
+                    Rectangle {
+                        id: detailsCard
+                        Layout.fillWidth: true
+                        height: detailsContent.implicitHeight + 48
+                        radius: 12
+                        color: "#FFFFFF"
+                        border.color: "#E2E8F0"
+                        border.width: 1
+                        visible: false
+
+                        ColumnLayout {
+                            id: detailsContent
+                            anchors { fill: parent; margins: 24 }
+                            spacing: 12
+
+                            Text {
+                                text: "📋 Metadata Kapal"
+                                font.pixelSize: 16
+                                font.bold: true
+                                color: "#1A3A5C"
+                            }
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 1
+                                color: "#E2E8F0"
+                            }
+
+                            // Info grid
+                            GridLayout {
+                                Layout.fillWidth: true
+                                columns: 2
+                                columnSpacing: 16
+                                rowSpacing: 8
+
+                                Text { text: "Nama Kapal:"; font.pixelSize: 12; color: "#718096"; font.bold: true }
+                                Text { text: importer.shipDetails["nama"] ?? "-"; font.pixelSize: 12; color: "#2D3748"; Layout.fillWidth: true; elide: Text.ElideRight }
+
+                                Text { text: "Tipe:"; font.pixelSize: 12; color: "#718096"; font.bold: true }
+                                Text { text: importer.shipDetails["tipe"] ?? "-"; font.pixelSize: 12; color: "#2D3748" }
+
+                                Text { text: "Perusahaan:"; font.pixelSize: 12; color: "#718096"; font.bold: true }
+                                Text { text: importer.shipDetails["company"] ?? "-"; font.pixelSize: 12; color: "#2D3748" }
+
+                                Text { text: "ID Kapal:"; font.pixelSize: 12; color: "#718096"; font.bold: true }
+                                Text { text: String(importer.shipDetails["idship"] ?? "-"); font.pixelSize: 12; color: "#2D3748" }
+
+                                Text { text: "DB File:"; font.pixelSize: 12; color: "#718096"; font.bold: true }
+                                Text { text: importer.shipDetails["dbid"] ?? "-"; font.pixelSize: 12; color: "#2D3748" }
+
+                                Text { text: "Prefix:"; font.pixelSize: 12; color: "#718096"; font.bold: true }
+                                Text { text: importer.shipDetails["fileprefix"] ?? "-"; font.pixelSize: 12; color: "#2D3748" }
+
+                                Text { text: "Versi:"; font.pixelSize: 12; color: "#718096"; font.bold: true }
+                                Text { text: String(importer.shipDetails["version"] ?? "-"); font.pixelSize: 12; color: "#2D3748" }
+                            }
+                        }
+                    }
+
+                    // ── Status Message ──────────────────
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: statusText.implicitHeight + 20
+                        radius: 8
+                        color: "#FFFBEB"
+                        border.color: "#F6E05E"
+                        border.width: 1
+                        visible: importer.statusMessage !== ""
+
+                        Text {
+                            id: statusText
+                            anchors {
+                                fill: parent
+                                margins: 10
+                            }
+                            text: importer.statusMessage
+                            font.pixelSize: 12
+                            color: "#744210"
+                            wrapMode: Text.Wrap
+                        }
+                    }
+
+                    // ── Action Buttons ──────────────────
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 12
+
+                        Button {
+                            id: importBtn
+                            Layout.fillWidth: true
+                            height: 44
+                            text: importer.importing ? "Mengimport..." : "⬇ Import Assets & Register"
+                            enabled: false
+                            font.pixelSize: 14
+                            font.bold: true
+
+                            background: Rectangle {
+                                radius: 8
+                                color: parent.enabled
+                                       ? (parent.hovered ? "#2F855A" : "#276749")
+                                       : "#CBD5E0"
+                            }
+
+                            contentItem: Text {
+                                text: parent.text
+                                font: parent.font
+                                color: parent.enabled ? "#FFFFFF" : "#718096"
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+
+                            onClicked: {
+                                if (importer.importing) return
+
+                                let path = fileDialog.selectedFile.toString()
+                                console.log("[BrowseDotIstow] Mulai import:", path)
+
+                                // 1. Import assets (skip .db)
+                                let ok = importer.importAssets(path)
+                                if (!ok) return
+
+                                // 2. Ekstrak DB ke temporary (untuk compare nanti)
+                                let tempDb = importer.extractDbToTemp(path)
+                                if (tempDb !== "") {
+                                    console.log("[BrowseDotIstow] DB temp:", tempDb)
+                                }
+
+                                // 3. Register metadata ke LocalDB
+                                importer.registerToLocalDb()
+                            }
+                        }
+                    }
+
+                    Item { height: 16 } // Bottom spacing
+                }
+            }
+        }
+    }
+
+    // ── Result Popup ───────────────────────────────────
+    Popup {
+        id: resultPopup
+        anchors.centerIn: parent
+        width: Math.min(parent.width - 64, 400)
+        height: popupContent.implicitHeight + 48
+        modal: true
+        dim: true
+
+        property bool isSuccess: false
+        property string resultMessage: ""
+
+        function show(success, message) {
+            isSuccess = success
+            resultMessage = message
+            open()
+        }
+
+        background: Rectangle {
+            radius: 12
+            color: "#FFFFFF"
+            border.color: resultPopup.isSuccess ? "#48BB78" : "#FC8181"
+            border.width: 2
+        }
+
+        ColumnLayout {
+            id: popupContent
+            anchors { fill: parent; margins: 24 }
+            spacing: 16
+
+            Text {
+                text: resultPopup.isSuccess ? "✅ Import Berhasil" : "❌ Import Gagal"
+                font.pixelSize: 18
+                font.bold: true
+                color: resultPopup.isSuccess ? "#276749" : "#9B2C2C"
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            Text {
+                text: resultPopup.resultMessage
+                font.pixelSize: 13
+                color: "#4A5568"
+                wrapMode: Text.Wrap
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            Button {
+                Layout.fillWidth: true
+                height: 40
+                text: "OK"
+                font.pixelSize: 14
+                font.bold: true
+
+                background: Rectangle {
+                    radius: 8
+                    color: parent.hovered ? "#2B6CB0" : "#1A3A5C"
+                }
+
+                contentItem: Text {
+                    text: parent.text
+                    font: parent.font
+                    color: "#FFFFFF"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                onClicked: resultPopup.close()
+            }
+        }
+    }
+}
