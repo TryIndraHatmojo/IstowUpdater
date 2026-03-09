@@ -28,6 +28,20 @@ IstowImporter::IstowImporter(QObject *parent)
 QVariantMap IstowImporter::shipDetails() const { return m_shipDetails; }
 bool IstowImporter::importing() const { return m_importing; }
 QString IstowImporter::statusMessage() const { return m_statusMessage; }
+QStringList IstowImporter::importLogs() const { return m_importLogs; }
+
+void IstowImporter::clearLogs()
+{
+    m_importLogs.clear();
+    emit importLogsChanged();
+}
+
+void IstowImporter::appendLog(const QString &msg)
+{
+    m_importLogs.append(msg);
+    emit importLogsChanged();
+    qDebug() << "[IstowImporter Log]" << msg;
+}
 
 void IstowImporter::setImporting(bool value)
 {
@@ -50,10 +64,9 @@ void IstowImporter::setStatusMessage(const QString &msg)
 
 QString IstowImporter::workDir() const
 {
-    // Sama dengan konvensi iStowV2: AppDataLocation + "/"
-    // Contoh: C:/Users/T480/AppData/Roaming/Pranala Digital Transmaritim/Stowage Planning Software iStow/
-    QString appData = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    return appData + "/";
+    // Konvensi iStowV2: [home]/iStowV2/
+    // Contoh: C:/Users/T480/iStowV2/
+    return QDir::homePath() + "/iStowV2/";
 }
 
 // ════════════════════════════════════════════════════════════
@@ -82,13 +95,31 @@ bool IstowImporter::backupFile(const QString &filePath)
     }
 
     QFileInfo fi(filePath);
-    QString backupDir = fi.absolutePath() + "/backup";
+    QString wDir = workDir();
+
+    // Hitung relative path dari workDir
+    // misal filePath = "C:/.../iStow/assets/images/ship.png"
+    //       wDir     = "C:/.../iStow/"
+    //       relPath  = "assets/images/ship.png"
+    QString relPath = filePath;
+    if (relPath.startsWith(wDir)) {
+        relPath = relPath.mid(wDir.length());
+    }
+
+    // Backup disimpan di iStowV2/IstowUpdater/backup_timestamp/ dengan struktur folder yang sama
+    // misal: C:/Users/T480/iStowV2/IstowUpdater/backup_20260304_125300/assets/images/ship.png
+    QFileInfo relFi(relPath);
+    
+    // Jika tidak diset, buat fallback timestamp
+    QString folderName = m_currentBackupFolder.isEmpty() 
+        ? "backup_" + QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") 
+        : m_currentBackupFolder;
+
+    QString backupDir = wDir + "IstowUpdater/" + folderName + "/" + relFi.path();
     QDir().mkpath(backupDir);
 
-    // Nama backup: namafile_YYYYMMDD_HHmmss.ext
-    QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
-    QString backupName = fi.baseName() + "_" + timestamp + "." + fi.suffix();
-    QString backupPath = backupDir + "/" + backupName;
+    // Nama backup sama seperti nama file aslinya
+    QString backupPath = backupDir + "/" + fi.fileName();
 
     if (QFile::copy(filePath, backupPath)) {
         qDebug() << "[IstowImporter] Backup dibuat:" << backupPath;
@@ -168,6 +199,9 @@ bool IstowImporter::importAssets(const QString &filePath)
     setImporting(true);
     setStatusMessage("Mulai import assets dari: " + localPath);
 
+    // Set folder backup untuk sesi import kali ini
+    m_currentBackupFolder = "backup_" + QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
+
     QString wDir = workDir();
 
     QFile file(localPath);
@@ -222,10 +256,14 @@ bool IstowImporter::importAssets(const QString &filePath)
         if (QFile::exists(outPath)) {
             if (!backupFile(outPath)) {
                 qWarning() << "[IstowImporter] Gagal backup, skip file:" << fileName;
+                appendLog("❌ LEWATI: " + fileName + " (Gagal backup)");
                 continue;
             }
             // Hapus file lama agar bisa ditulis ulang
             QFile::remove(outPath);
+            appendLog("🔄 REPLACE: " + fileName);
+        } else {
+            appendLog("✅ ADD: " + fileName);
         }
 
         // ─── Tulis file asset ────────────────────────────
@@ -290,6 +328,9 @@ QString IstowImporter::extractDbToTemp(const QString &filePath)
             // Backup jika sudah ada file temp sebelumnya
             if (QFile::exists(tempDbPath)) {
                 QFile::remove(tempDbPath);
+                appendLog("🔄 REPLACE (Temp DB): " + dbBaseName);
+            } else {
+                appendLog("✅ ADD (Temp DB): " + dbBaseName);
             }
 
             QFile outFile(tempDbPath);

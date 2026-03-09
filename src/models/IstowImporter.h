@@ -25,6 +25,7 @@ class IstowImporter : public QObject
     Q_PROPERTY(QVariantMap shipDetails READ shipDetails NOTIFY detailsChanged)
     Q_PROPERTY(bool importing READ importing NOTIFY importingChanged)
     Q_PROPERTY(QString statusMessage READ statusMessage NOTIFY statusMessageChanged)
+    Q_PROPERTY(QStringList importLogs READ importLogs NOTIFY importLogsChanged)
 
 public:
     explicit IstowImporter(QObject *parent = nullptr);
@@ -33,8 +34,10 @@ public:
     QVariantMap shipDetails() const;
     bool importing() const;
     QString statusMessage() const;
+    QStringList importLogs() const;
 
     // ── Q_INVOKABLE — dipanggil dari QML ────────────────
+    Q_INVOKABLE void clearLogs();
 
     /*!
      * \brief Baca metadata .details dari arsip .istow
@@ -79,14 +82,18 @@ signals:
     void detailsChanged();
     void importingChanged();
     void statusMessageChanged();
+    void importLogsChanged();
     void importFinished(bool success, const QString &message);
 
 private:
     QVariantMap m_shipDetails;
     bool m_importing = false;
     QString m_statusMessage;
+    QStringList m_importLogs;
+    QString m_currentBackupFolder;
 
     // ── Helper ──────────────────────────────────────────
+    void appendLog(const QString &msg);
 
     /*!
      * \brief Dapatkan working directory (homePath) untuk file asset kapal

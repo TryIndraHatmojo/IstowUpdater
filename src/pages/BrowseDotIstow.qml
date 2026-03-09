@@ -281,6 +281,53 @@ Item {
                         }
                     }
 
+                    // ── Card: Import Logs ────────────────
+                    Rectangle {
+                        id: logsCard
+                        Layout.fillWidth: true
+                        height: 200
+                        radius: 12
+                        color: "#FFFFFF"
+                        border.color: "#E2E8F0"
+                        border.width: 1
+                        visible: importer.importLogs.length > 0
+
+                        ColumnLayout {
+                            anchors { fill: parent; margins: 16 }
+                            spacing: 8
+
+                            Text {
+                                text: "📝 Log Import File"
+                                font.pixelSize: 14
+                                font.bold: true
+                                color: "#1A3A5C"
+                            }
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 1
+                                color: "#E2E8F0"
+                            }
+
+                            ScrollView {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                clip: true
+
+                                ListView {
+                                    model: importer.importLogs
+                                    delegate: Text {
+                                        text: modelData
+                                        font.pixelSize: 12
+                                        color: modelData.includes("REPLACE") ? "#B7791F" : (modelData.includes("LEWATI") ? "#E53E3E" : "#2F855A")
+                                        wrapMode: Text.Wrap
+                                        width: ListView.view.width
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // ── Action Buttons ──────────────────
                     RowLayout {
                         Layout.fillWidth: true
@@ -315,6 +362,8 @@ Item {
 
                                 let path = fileDialog.selectedFile.toString()
                                 console.log("[BrowseDotIstow] Mulai import:", path)
+
+                                importer.clearLogs()
 
                                 // 1. Import assets (skip .db)
                                 let ok = importer.importAssets(path)
