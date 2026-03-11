@@ -166,3 +166,41 @@ void LocalRepository::insertShip(int idship, const QString &tipe, const QString 
     this->executeQuery(query);
     qDebug() << "[LocalRepository] insertShip selesai:" << nama;
 }
+
+// ──────────────────────────────────────────────
+// checkShipExists — Cek apakah kapal sudah ada
+// ──────────────────────────────────────────────
+
+bool LocalRepository::checkShipExists(int idship)
+{
+    QString query = QString("SELECT COUNT(*) as count FROM shiptbl WHERE idship = %1").arg(idship);
+    QueryResult *result = this->executeQuery(query);
+    QJsonObject row = result->getRawOne();
+    return row.value("count").toInt() > 0;
+}
+
+// ──────────────────────────────────────────────
+// updateShip — Update data kapal tanpa menghapus voyage
+// ──────────────────────────────────────────────
+
+void LocalRepository::updateShip(int idship, const QString &tipe, const QString &nama,
+                                  const QString &dbid, const QString &fileprefix,
+                                  const QString &company, int version)
+{
+    qDebug() << "[LocalRepository] updateShip:" << nama << "| idship:" << idship;
+
+    QString query = QString(
+        "UPDATE shiptbl SET "
+        "tipe = '%1', nama = '%2', company = '%3', dbid = '%4', fileprefix = '%5', lastupdate = strftime('%%s','now'), version = %6 "
+        "WHERE idship = %7")
+        .arg(tipe)
+        .arg(nama)
+        .arg(company)
+        .arg(dbid)
+        .arg(fileprefix)
+        .arg(version)
+        .arg(idship);
+
+    this->executeQuery(query);
+    qDebug() << "[LocalRepository] updateShip selesai:" << nama;
+}

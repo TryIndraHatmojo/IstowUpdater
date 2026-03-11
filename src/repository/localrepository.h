@@ -17,7 +17,11 @@ public:
     void insertShip(int idship, const QString &tipe, const QString &nama,
                     const QString &dbid, const QString &fileprefix,
                     const QString &company, int version);
+    void updateShip(int idship, const QString &tipe, const QString &nama,
+                    const QString &dbid, const QString &fileprefix,
+                    const QString &company, int version);
     void deleteShip(int idship);
+    bool checkShipExists(int idship);
 
 private:
     static LocalRepository *localRepository;

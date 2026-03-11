@@ -328,6 +328,60 @@ Item {
                         }
                     }
 
+                    // ── Card: DB Compare Logs ────────────
+                    Rectangle {
+                        id: dbLogsCard
+                        Layout.fillWidth: true
+                        height: 220
+                        radius: 12
+                        color: "#FFFFFF"
+                        border.color: "#BEE3F8"
+                        border.width: 1
+                        visible: importer.dbCompareLogs.length > 0
+
+                        ColumnLayout {
+                            anchors { fill: parent; margins: 16 }
+                            spacing: 8
+
+                            Text {
+                                text: "🔍 Log Database Compare"
+                                font.pixelSize: 14
+                                font.bold: true
+                                color: "#2A4365"
+                            }
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 1
+                                color: "#BEE3F8"
+                            }
+
+                            ScrollView {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                clip: true
+
+                                ListView {
+                                    model: importer.dbCompareLogs
+                                    delegate: Text {
+                                        text: modelData
+                                        font.pixelSize: 11
+                                        font.family: "Consolas"
+                                        color: {
+                                            if (modelData.includes("❌") || modelData.includes("Gagal")) return "#E53E3E"
+                                            if (modelData.includes("🆕") || modelData.includes("✅")) return "#2F855A"
+                                            if (modelData.includes("📎") || modelData.includes("⚡") || modelData.includes("👁")) return "#2B6CB0"
+                                            if (modelData.includes("📊")) return "#6B46C1"
+                                            return "#4A5568"
+                                        }
+                                        wrapMode: Text.Wrap
+                                        width: ListView.view.width
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // ── Action Buttons ──────────────────
                     RowLayout {
                         Layout.fillWidth: true
@@ -364,18 +418,22 @@ Item {
                                 console.log("[BrowseDotIstow] Mulai import:", path)
 
                                 importer.clearLogs()
+                                importer.clearDbLogs()
 
                                 // 1. Import assets (skip .db)
                                 let ok = importer.importAssets(path)
                                 if (!ok) return
 
-                                // 2. Ekstrak DB ke temporary (untuk compare nanti)
+                                // 2. Ekstrak DB ke temporary
                                 let tempDb = importer.extractDbToTemp(path)
                                 if (tempDb !== "") {
                                     console.log("[BrowseDotIstow] DB temp:", tempDb)
+
+                                    // 3. Compare & Migrate DB (additive only)
+                                    importer.compareAndMigrateDb(tempDb)
                                 }
 
-                                // 3. Register metadata ke LocalDB
+                                // 4. Register metadata ke LocalDB
                                 importer.registerToLocalDb()
                             }
                         }

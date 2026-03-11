@@ -5,6 +5,7 @@
 #include <QString>
 #include <QVariantMap>
 #include <QJsonObject>
+#include <QStringList>
 #include <QtQml/qqmlregistration.h>
 
 /*!
@@ -26,6 +27,7 @@ class IstowImporter : public QObject
     Q_PROPERTY(bool importing READ importing NOTIFY importingChanged)
     Q_PROPERTY(QString statusMessage READ statusMessage NOTIFY statusMessageChanged)
     Q_PROPERTY(QStringList importLogs READ importLogs NOTIFY importLogsChanged)
+    Q_PROPERTY(QStringList dbCompareLogs READ dbCompareLogs NOTIFY dbCompareLogsChanged)
 
 public:
     explicit IstowImporter(QObject *parent = nullptr);
@@ -35,9 +37,20 @@ public:
     bool importing() const;
     QString statusMessage() const;
     QStringList importLogs() const;
+    QStringList dbCompareLogs() const;
 
     // ── Q_INVOKABLE — dipanggil dari QML ────────────────
     Q_INVOKABLE void clearLogs();
+    Q_INVOKABLE void clearDbLogs();
+
+    /*!
+     * \brief Compare schema DB lama (di iStowV2) dengan DB baru (dari temp).
+     * Hanya menambahkan: tabel baru, kolom baru, trigger baru.
+     * TIDAK menghapus tabel, kolom, atau trigger yang sudah ada.
+     * \param tempDbPath path ke DB baru di folder temporary
+     * \return true jika compare & migrate berhasil
+     */
+    Q_INVOKABLE bool compareAndMigrateDb(const QString &tempDbPath);
 
     /*!
      * \brief Baca metadata .details dari arsip .istow
@@ -83,6 +96,7 @@ signals:
     void importingChanged();
     void statusMessageChanged();
     void importLogsChanged();
+    void dbCompareLogsChanged();
     void importFinished(bool success, const QString &message);
 
 private:
@@ -90,10 +104,12 @@ private:
     bool m_importing = false;
     QString m_statusMessage;
     QStringList m_importLogs;
+    QStringList m_dbCompareLogs;
     QString m_currentBackupFolder;
 
     // ── Helper ──────────────────────────────────────────
     void appendLog(const QString &msg);
+    void appendDbLog(const QString &msg);
 
     /*!
      * \brief Dapatkan working directory (homePath) untuk file asset kapal
