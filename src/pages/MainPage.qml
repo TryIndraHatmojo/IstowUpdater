@@ -7,6 +7,7 @@ Window {
     id: window
     width: 640
     height: 480
+    visibility: Window.Maximized
     visible: true
     title: qsTr("iStow Updater")
 
