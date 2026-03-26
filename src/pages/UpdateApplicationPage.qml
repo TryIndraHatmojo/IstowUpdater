@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import IstowUpdater
 
 Item {
@@ -30,12 +31,37 @@ Item {
 		id: installerModel
 	}
 
+	BackupSessionModel {
+		id: backupSessionModel
+	}
+
+	FolderDialog {
+		id: backupFolderDialog
+		title: "Pilih Directory iStow yang Akan Dibackup"
+		currentFolder: "file:///C:/"
+		onAccepted: {
+			let path = selectedFolder.toString()
+			root.appendLog("Memulai backup: " + path, "info")
+			let ok = backupSessionModel.backupOldIstow(path)
+			root.appendLog(ok ? "Backup selesai." : "Backup gagal.", ok ? "success" : "error")
+		}
+	}
+
 	Connections {
 		target: installerModel
 		function onStatusMessageChanged() {
 			if (installerModel.statusMessage && installerModel.statusMessage !== root.lastStatusMessageLogged) {
 				root.lastStatusMessageLogged = installerModel.statusMessage
 				root.appendLog(installerModel.statusMessage, "info")
+			}
+		}
+	}
+
+	Connections {
+		target: backupSessionModel
+		function onStatusMessageChanged() {
+			if (backupSessionModel.statusMessage) {
+				root.appendLog(backupSessionModel.statusMessage, "info")
 			}
 		}
 	}
@@ -108,6 +134,12 @@ Item {
 
 							Item {
 								Layout.fillWidth: true
+							}
+
+							AppButton {
+								text: "Backup Old iStow"
+								tone: "secondary"
+								onClicked: backupFolderDialog.open()
 							}
 
 							AppButton {

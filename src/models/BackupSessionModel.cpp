@@ -9,6 +9,7 @@
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QCoreApplication>
 
 BackupSessionModel::BackupSessionModel(QObject *parent)
     : QObject(parent)
@@ -133,6 +134,64 @@ bool BackupSessionModel::rollbackSession(int sessionId)
     setRollingBack(false);
     loadSessions();
     return restored > 0;
+}
+
+bool BackupSessionModel::backupOldIstow(const QString &directoryUrl)
+{
+    QString sourceDir = QUrl(directoryUrl).toLocalFile();
+    if (sourceDir.isEmpty() || !QDir(sourceDir).exists()) {
+        setStatusMessage("Backup gagal: Directory tidak valid.");
+        return false;
+    }
+
+    setStatusMessage("Memulai backup dari: " + sourceDir);
+
+    QDir sourceQDir(sourceDir);
+    QString baseFolderName = sourceQDir.dirName();
+    QString timeStamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
+    QString targetFolderName = baseFolderName + "_" + timeStamp;
+
+    QString wDir = QDir::homePath() + "/iStowV2/";
+    QString updaterDir = wDir + "IstowUpdater/";
+    QString targetDir = updaterDir + targetFolderName;
+
+    setStatusMessage("Menyiapkan folder backup: " + targetDir);
+
+    if (!QDir().mkpath(targetDir)) {
+        setStatusMessage("Backup gagal: Tidak dapat membuat direktori backup.");
+        return false;
+    }
+
+    setStatusMessage("Menyimpan sesi ke database...");
+    int sessionId = BackupRepository::getInstance()->insertSession(targetFolderName, baseFolderName, 0);
+    int copied = 0;
+    int failed = 0;
+
+    QDirIterator it(sourceDir, QDir::Files | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        QString fileSrc = it.next();
+        QString relativePath = sourceQDir.relativeFilePath(fileSrc);
+        QString fileTarget = targetDir + "/" + relativePath;
+
+        QFileInfo targetInfo(fileTarget);
+        QDir().mkpath(targetInfo.absolutePath());
+
+        setStatusMessage("Mengkopi file: " + relativePath);
+        QCoreApplication::processEvents();
+
+        if (QFile::copy(fileSrc, fileTarget)) {
+            BackupRepository::getInstance()->insertRecord(sessionId, fileSrc, fileTarget, "backup_old");
+            copied++;
+        } else {
+            setStatusMessage("Gagal mengkopi file: " + relativePath);
+            QCoreApplication::processEvents();
+            failed++;
+        }
+    }
+
+    loadSessions();
+    setStatusMessage(QString("Backup selesai: %1 file berhasil, %2 file gagal.").arg(copied).arg(failed));
+    return copied > 0;
 }
 
 void BackupSessionModel::loadSessions()

@@ -27,6 +27,7 @@ public:
     Q_INVOKABLE void reload();
     Q_INVOKABLE void clearLogs();
     Q_INVOKABLE bool rollbackSession(int sessionId);
+    Q_INVOKABLE bool backupOldIstow(const QString &directoryUrl);
 
 signals:
     void sessionsChanged();
