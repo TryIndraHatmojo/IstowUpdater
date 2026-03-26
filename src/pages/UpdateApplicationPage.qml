@@ -47,6 +47,47 @@ Item {
 		}
 	}
 
+	FolderDialog {
+		id: uninstallFolderDialog
+		title: "Pilih Directory iStow yang Akan Diuninstall"
+		currentFolder: "file:///C:/"
+		onAccepted: {
+			uninstallWarningDialog.targetDirUrl = selectedFolder.toString()
+			uninstallWarningDialog.open()
+		}
+	}
+
+	Dialog {
+		id: uninstallWarningDialog
+		title: "Konfirmasi Uninstall"
+		modal: true
+		standardButtons: Dialog.Yes | Dialog.No
+		x: Math.round((parent.width - width) / 2)
+		y: Math.round((parent.height - height) / 2)
+
+		property string targetDirUrl: ""
+
+		ColumnLayout {
+			spacing: 10
+			Text {
+				text: "Apakah Anda yakin ingin melakukan uninstall?"
+				font.bold: true
+			}
+			Text {
+				text: "PERINGATAN: Semua file di dalam direktori instalasi yang Anda pilih akan terhapus secara permanen.\nProses ini tidak bisa dibatalkan!\n\nPastikan direktori ini memang benar."
+				color: "red"
+				wrapMode: Text.Wrap
+				Layout.preferredWidth: 350
+			}
+		}
+
+		onAccepted: {
+			root.appendLog("Memulai uninstall dari: " + targetDirUrl, "info")
+			let ok = backupSessionModel.uninstallOldIstow(targetDirUrl)
+			root.appendLog(ok ? "Uninstall selesai." : "Uninstall gagal.", ok ? "success" : "error")
+		}
+	}
+
 	Connections {
 		target: installerModel
 		function onStatusMessageChanged() {
@@ -140,6 +181,12 @@ Item {
 								text: "Backup Old iStow"
 								tone: "secondary"
 								onClicked: backupFolderDialog.open()
+							}
+
+							AppButton {
+								text: "Uninstall Old iStow"
+								tone: "danger"
+								onClicked: uninstallFolderDialog.open()
 							}
 
 							AppButton {

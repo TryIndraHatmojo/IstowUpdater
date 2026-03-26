@@ -23,6 +23,11 @@ QVariantList BackupSessionModel::sessions() const
     return m_sessions;
 }
 
+QVariantList BackupSessionModel::appSessions() const
+{
+    return m_appSessions;
+}
+
 bool BackupSessionModel::rollingBack() const
 {
     return m_rollingBack;
@@ -143,6 +148,11 @@ bool BackupSessionModel::rollbackAppSession(int sessionId, const QString &target
         return false;
     }
 
+    if(targetDirUrl.isEmpty()) {
+        setStatusMessage("Rollback gagal: Direktori tujuan tidak valid.");
+        return false;
+    }
+
     QString rootWorkDir = targetDirUrl.isEmpty() ? (QDir::homePath() + "/iStowV2/") : QUrl(targetDirUrl).toLocalFile();
     if (!rootWorkDir.endsWith("/")) {
         rootWorkDir += "/";
@@ -176,6 +186,29 @@ bool BackupSessionModel::rollbackAppSession(int sessionId, const QString &target
 
     appendLog("Sumber backup: " + backupSessionDir);
     appendLog("Target restore: " + rootWorkDir);
+
+    if (!QFile::exists(rootWorkDir + "iStowV2.exe")) {
+        appendLog("ERROR: Bukan folder iStow (tidak ada iStowV2.exe)");
+        setStatusMessage("Rollback gagal: Direktori tujuan bukan folder iStow yang valid.");
+        setRollingBack(false);
+        return false;
+    }
+
+    appendLog("Menghapus seluruh file lama di " + rootWorkDir + "...");
+    QDir targetD(rootWorkDir);
+    targetD.setFilter(QDir::NoDotAndDotDot | QDir::AllEntries | QDir::System);
+    QFileInfoList listInfo = targetD.entryInfoList();
+    for (const QFileInfo &fileInfo : listInfo) {
+        if (fileInfo.isDir()) {
+            if (fileInfo.fileName() != "IstowUpdater") {
+                QDir dir(fileInfo.absoluteFilePath());
+                dir.removeRecursively();
+            }
+        } else {
+            QFile::remove(fileInfo.absoluteFilePath());
+        }
+    }
+    QDir().mkpath(rootWorkDir);
 
     int restored = 0;
     int failed = 0;
@@ -311,6 +344,34 @@ bool BackupSessionModel::backupOldIstow(const QString &directoryUrl)
     return copied > 0;
 }
 
+bool BackupSessionModel::uninstallOldIstow(const QString &directoryUrl)
+{
+    QString sourceDir = QUrl(directoryUrl).toLocalFile();
+    if (sourceDir.isEmpty() || !QDir(sourceDir).exists()) {
+        setStatusMessage("Uninstall gagal: Direktori tidak valid atau tidak ditemukan.");
+        return false;
+    }
+
+    if (!QFile::exists(sourceDir + "/iStowV2.exe")) {
+        setStatusMessage("Uninstall gagal: Direktori tujuan bukan folder iStow (iStowV2.exe tidak ditemukan).");
+        return false;
+    }
+
+    setStatusMessage("Memulai uninstall iStow dari: " + sourceDir);
+    appendLog("Menghapus direktori: " + sourceDir);
+
+    QDir dir(sourceDir);
+    if (dir.removeRecursively()) {
+        setStatusMessage("Uninstall selesai: Direktori berhasil dihapus.");
+        appendLog("Direktori berhasil dihapus.");
+        return true;
+    } else {
+        setStatusMessage("Uninstall gagal: Tidak dapat menghapus semua file di direktori (mungkin ada yang sedang digunakan).");
+        appendLog("Gagal menghapus direktori.");
+        return false;
+    }
+}
+
 void BackupSessionModel::loadSessions()
 {
     QJsonArray data = BackupRepository::getInstance()->getAllSessions();
@@ -326,8 +387,19 @@ void BackupSessionModel::loadSessions()
 
         m_sessions.append(map);
     }
+    
+    QJsonArray appData = BackupRepository::getInstance()->getAllAppSessions();
+    m_appSessions.clear();
+    for (const QJsonValue &value : appData) {
+        QJsonObject obj = value.toObject();
+        QVariantMap map = obj.toVariantMap();
+        qint64 createdAt = obj.value("created_at").toVariant().toLongLong();
+        map.insert("created_at_text", QDateTime::fromSecsSinceEpoch(createdAt).toString("yyyy-MM-dd HH:mm:ss"));
+        m_appSessions.append(map);
+    }
 
     emit sessionsChanged();
+    emit appSessionsChanged();
 }
 
 void BackupSessionModel::appendLog(const QString &message)
