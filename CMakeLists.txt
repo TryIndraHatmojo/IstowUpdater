@@ -17,21 +17,27 @@ qt_add_executable(appIstowUpdater
     src/repository/localrepository.cpp
     src/repository/backuprepository.h
     src/repository/backuprepository.cpp
+    src/repository/installerrepository.h
+    src/repository/installerrepository.cpp
     src/models/ShipModel.h
     src/models/ShipModel.cpp
     src/models/IstowImporter.h
     src/models/IstowImporter.cpp
     src/models/BackupSessionModel.h
     src/models/BackupSessionModel.cpp
+    src/models/InstallerModel.h
+    src/models/InstallerModel.cpp
 )
 
 qt_add_qml_module(appIstowUpdater
     URI IstowUpdater
     QML_FILES
+        src/pages/AppButton.qml
         src/pages/MainPage.qml
         src/pages/BrowseDotIstow.qml
         src/pages/RollbackAssetsPage.qml
         src/pages/UpdateApplicationPage.qml
+        src/pages/InstallerFormPopup.qml
         src/pages/RollbackApplicationPage.qml
         src/pages/PatchDbPage.qml
     RESOURCES

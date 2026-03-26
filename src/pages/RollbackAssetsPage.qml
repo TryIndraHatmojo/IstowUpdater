@@ -35,7 +35,8 @@ Item {
 
 				Item { Layout.fillWidth: true }
 
-				Button {
+				AppButton {
+					tone: "secondary"
 					text: "Refresh"
 					enabled: !backupModel.rollingBack
 					onClicked: backupModel.reload()
@@ -74,32 +75,13 @@ Item {
 			RowLayout {
 				anchors.fill: parent
 				anchors.margins: 12
-				spacing: 8
+				spacing: 10
 
 				ColumnLayout {
 					Layout.fillWidth: true
+					Layout.preferredWidth: parent.width * 0.5
 					Layout.fillHeight: true
 					spacing: 8
-
-					Rectangle {
-						Layout.fillWidth: true
-						height: 40
-						radius: 6
-						color: "#EDF2F7"
-
-						RowLayout {
-							anchors.fill: parent
-							anchors.leftMargin: 10
-							anchors.rightMargin: 10
-							spacing: 8
-
-							Text { text: "Ship ID"; font.bold: true; Layout.preferredWidth: 80; color: "#2D3748" }
-							Text { text: "Ship Name"; font.bold: true; Layout.preferredWidth: 220; color: "#2D3748" }
-							Text { text: "Folder Name"; font.bold: true; Layout.fillWidth: true; color: "#2D3748" }
-							Text { text: "Created At"; font.bold: true; Layout.preferredWidth: 170; color: "#2D3748" }
-							Text { text: "Aksi"; font.bold: true; horizontalAlignment: Text.AlignHCenter; Layout.preferredWidth: 110; color: "#2D3748" }
-						}
-					}
 
 					ScrollView {
 						Layout.fillWidth: true
@@ -111,14 +93,38 @@ Item {
 							width: parent.width
 							model: backupModel.sessions
 							spacing: 6
+							headerPositioning: ListView.OverlayHeader
+
+							header: Rectangle {
+								width: sessionList.width
+								height: 42
+								radius: 6
+								color: "#EEF2F7"
+								border.color: "#D9E2EC"
+								border.width: 1
+								z: 2
+
+								RowLayout {
+									anchors.fill: parent
+									anchors.leftMargin: 10
+									anchors.rightMargin: 10
+									spacing: 8
+
+									Text { text: "Ship ID"; font.bold: true; Layout.preferredWidth: 80; color: "#2D3748" }
+									Text { text: "Ship Name"; font.bold: true; Layout.preferredWidth: 200; color: "#2D3748" }
+									Text { text: "Folder Name"; font.bold: true; Layout.fillWidth: true; color: "#2D3748" }
+									Text { text: "Created At"; font.bold: true; Layout.preferredWidth: 150; color: "#2D3748" }
+									Text { text: "Aksi"; font.bold: true; horizontalAlignment: Text.AlignHCenter; Layout.preferredWidth: 100; color: "#2D3748" }
+								}
+							}
 
 							delegate: Rectangle {
 								required property var modelData
 
 								width: sessionList.width
-								height: 52
+								height: 54
 								radius: 6
-								color: index % 2 === 0 ? "#FAFAFA" : "#F7FAFC"
+								color: index % 2 === 0 ? "#FFFFFF" : "#F8FAFC"
 								border.color: "#E2E8F0"
 								border.width: 1
 
@@ -137,7 +143,7 @@ Item {
 
 									Text {
 										text: modelData.ship_name ?? "-"
-										Layout.preferredWidth: 220
+										Layout.preferredWidth: 200
 										color: "#2D3748"
 										elide: Text.ElideRight
 									}
@@ -151,14 +157,14 @@ Item {
 
 									Text {
 										text: modelData.created_at_text ?? "-"
-										Layout.preferredWidth: 170
+										Layout.preferredWidth: 150
 										color: "#2D3748"
 										elide: Text.ElideRight
 									}
 
-									Button {
+									AppButton {
 										text: backupModel.rollingBack ? "Proses..." : "Rollback"
-										Layout.preferredWidth: 110
+										Layout.preferredWidth: 100
 										enabled: !backupModel.rollingBack
 										onClicked: {
 											const ok = backupModel.rollbackSession(Number(modelData.id ?? 0))
@@ -186,8 +192,9 @@ Item {
 				}
 
 				Rectangle {
+					Layout.fillWidth: true
 					Layout.fillHeight: true
-					Layout.preferredWidth: 340
+					Layout.preferredWidth: parent.width * 0.5
 					radius: 8
 					color: "#F7FAFC"
 					border.color: "#D9E2EC"
@@ -210,7 +217,8 @@ Item {
 
 							Item { Layout.fillWidth: true }
 
-							Button {
+							AppButton {
+								tone: "secondary"
 								text: "Clear"
 								enabled: !backupModel.rollingBack && backupModel.rollbackLogs.length > 0
 								onClicked: backupModel.clearLogs()

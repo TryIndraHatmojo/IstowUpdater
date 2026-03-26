@@ -57,11 +57,11 @@ Window {
                     Layout.fillWidth: true
                     currentIndex: 0
 
-                    TabButton { text: "Update Assets and sync DB" }
+                    TabButton { text: "Update Assets and Sync DB Structure" }
                     TabButton { text: "Rollback Assets" }
-                    TabButton { text: "Update Aplication" }
-                    TabButton { text: "Rollback Aplication" }
-                    TabButton { text: "Patch DB" }
+                    TabButton { text: "Update Application" }
+                    TabButton { text: "Rollback Application" }
+                    TabButton { text: "Patch DB Data" }
                 }
 
                 StackLayout {

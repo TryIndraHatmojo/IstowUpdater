@@ -2,6 +2,7 @@
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
 #include "localrepository.h"
+#include "installerrepository.h"
 
 int main(int argc, char *argv[])
 {
@@ -20,6 +21,7 @@ int main(int argc, char *argv[])
 
     // Inisialisasi database lokal sebelum QML engine berjalan
     LocalRepository::getInstance();
+    InstallerRepository::getInstance();
 
     QQmlApplicationEngine engine;
     QObject::connect(
