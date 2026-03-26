@@ -87,6 +87,14 @@ QJsonArray BackupRepository::getAllSessions()
     return this->executeQuery(query)->getRawMany();
 }
 
+QJsonObject BackupRepository::getSessionById(int sessionId)
+{
+    QString query = QString(
+        "SELECT * FROM backup_sessions WHERE id = %1")
+        .arg(sessionId);
+    return this->executeQuery(query)->getRawOne();
+}
+
 QJsonObject BackupRepository::getSessionByFolder(const QString &folderName)
 {
     QString query = QString(

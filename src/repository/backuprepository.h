@@ -17,6 +17,7 @@ public:
     int insertSession(const QString &folderName, const QString &shipName, int idship);
     void updateSessionStatus(int sessionId, const QString &status);
     QJsonArray getAllSessions();
+    QJsonObject getSessionById(int sessionId);
     QJsonObject getSessionByFolder(const QString &folderName);
     QJsonArray getSessionsByShip(int idship);
 

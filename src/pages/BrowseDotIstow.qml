@@ -12,6 +12,7 @@ Item {
 
     // ── Referensi model ────────────────────────────────
     property var shipModel: null
+    property bool showBackButton: true
 
     // ── IstowImporter instance ─────────────────────────
     IstowImporter {
@@ -66,6 +67,8 @@ Item {
                 Button {
                     text: "← Kembali"
                     flat: true
+                    visible: root.showBackButton
+                    enabled: root.showBackButton
                     font.pixelSize: 14
                     contentItem: Text {
                         text: parent.text

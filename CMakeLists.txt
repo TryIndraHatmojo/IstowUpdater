@@ -21,6 +21,8 @@ qt_add_executable(appIstowUpdater
     src/models/ShipModel.cpp
     src/models/IstowImporter.h
     src/models/IstowImporter.cpp
+    src/models/BackupSessionModel.h
+    src/models/BackupSessionModel.cpp
 )
 
 qt_add_qml_module(appIstowUpdater
@@ -28,6 +30,10 @@ qt_add_qml_module(appIstowUpdater
     QML_FILES
         src/pages/MainPage.qml
         src/pages/BrowseDotIstow.qml
+        src/pages/RollbackAssetsPage.qml
+        src/pages/UpdateApplicationPage.qml
+        src/pages/RollbackApplicationPage.qml
+        src/pages/PatchDbPage.qml
     RESOURCES
         qtquickcontrols2.conf
 )
