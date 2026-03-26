@@ -10,6 +10,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QCoreApplication>
+#include <QXmlStreamReader>
 
 BackupSessionModel::BackupSessionModel(QObject *parent)
     : QObject(parent)
@@ -136,11 +137,111 @@ bool BackupSessionModel::rollbackSession(int sessionId)
     return restored > 0;
 }
 
+bool BackupSessionModel::rollbackAppSession(int sessionId, const QString &targetDirUrl)
+{
+    if (m_rollingBack || sessionId <= 0) {
+        return false;
+    }
+
+    QString rootWorkDir = targetDirUrl.isEmpty() ? (QDir::homePath() + "/iStowV2/") : QUrl(targetDirUrl).toLocalFile();
+    if (!rootWorkDir.endsWith("/")) {
+        rootWorkDir += "/";
+    }
+
+    clearLogs();
+    setRollingBack(true);
+    setStatusMessage("Memulai rollback aplikasi session ID " + QString::number(sessionId) + "...");
+    appendLog("Memulai rollback aplikasi session ID " + QString::number(sessionId));
+
+    QJsonObject session = BackupRepository::getInstance()->getAppSessionById(sessionId);
+    const QString folderName = session.value("folder_name").toString();
+    if (folderName.isEmpty()) {
+        appendLog("ERROR: session aplikasi tidak ditemukan");
+        setStatusMessage("Rollback gagal: session tidak ditemukan.");
+        setRollingBack(false);
+        return false;
+    }
+
+    appendLog("Folder session: " + folderName);
+
+    QDir().mkpath(rootWorkDir);
+
+    const QString backupSessionDir = QDir::homePath() + "/iStowV2/IstowUpdater/" + folderName;
+    if (!QDir(backupSessionDir).exists()) {
+        appendLog("ERROR: folder backup tidak ditemukan: " + backupSessionDir);
+        setStatusMessage("Rollback gagal: folder backup tidak ditemukan.");
+        setRollingBack(false);
+        return false;
+    }
+
+    appendLog("Sumber backup: " + backupSessionDir);
+    appendLog("Target restore: " + rootWorkDir);
+
+    int restored = 0;
+    int failed = 0;
+
+    QDirIterator it(backupSessionDir, QDir::Files, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        const QString sourcePath = it.next();
+        const QString relativePath = QDir(backupSessionDir).relativeFilePath(sourcePath);
+        const QString targetPath = rootWorkDir + relativePath;
+        const QString shortName = QFileInfo(sourcePath).fileName();
+
+        if (relativePath.isEmpty() || !QFile::exists(sourcePath)) {
+            appendLog("SKIP: file sumber tidak valid - " + shortName);
+            failed++;
+            continue;
+        }
+
+        QFileInfo targetInfo(targetPath);
+        QDir().mkpath(targetInfo.absolutePath());
+
+        setStatusMessage("Restore file: " + relativePath);
+        QCoreApplication::processEvents();
+
+        if (QFile::exists(targetPath) && !QFile::remove(targetPath)) {
+            appendLog("GAGAL replace: " + shortName);
+            failed++;
+            continue;
+        }
+
+        if (QFile::copy(sourcePath, targetPath)) {
+            appendLog("RESTORE: " + relativePath);
+            restored++;
+        } else {
+            appendLog("GAGAL copy: " + shortName);
+            failed++;
+        }
+    }
+
+    if (restored > 0) {
+        BackupRepository::getInstance()->updateAppSessionStatus(sessionId, "rolled_back");
+        appendLog("Status session aplikasi diupdate menjadi rolled_back");
+    }
+
+    setStatusMessage(
+        QString("Rollback aplikasi selesai: %1 file dipulihkan, %2 file gagal.")
+            .arg(restored)
+            .arg(failed));
+    appendLog(QString("Selesai: %1 file dipulihkan, %2 file gagal")
+                  .arg(restored)
+                  .arg(failed));
+
+    setRollingBack(false);
+    loadSessions();
+    return restored > 0;
+}
+
 bool BackupSessionModel::backupOldIstow(const QString &directoryUrl)
 {
     QString sourceDir = QUrl(directoryUrl).toLocalFile();
     if (sourceDir.isEmpty() || !QDir(sourceDir).exists()) {
         setStatusMessage("Backup gagal: Directory tidak valid.");
+        return false;
+    }
+
+    if (!QFile::exists(sourceDir + "/iStowV2.exe")) {
+        setStatusMessage("Backup gagal: Direktori folder iStow tidak valid (iStowV2.exe tidak ditemukan).");
         return false;
     }
 
@@ -162,8 +263,24 @@ bool BackupSessionModel::backupOldIstow(const QString &directoryUrl)
         return false;
     }
 
+    QString istowVersion = "unknown";
+    QFile componentsFile(sourceDir + "/components.xml");
+    if (componentsFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QXmlStreamReader xml(&componentsFile);
+        while (!xml.atEnd() && !xml.hasError()) {
+            QXmlStreamReader::TokenType token = xml.readNext();
+            if (token == QXmlStreamReader::StartElement) {
+                if (xml.name() == QLatin1String("Version")) {
+                    istowVersion = xml.readElementText();
+                    break;
+                }
+            }
+        }
+        componentsFile.close();
+    }
+
     setStatusMessage("Menyimpan sesi ke database...");
-    int sessionId = BackupRepository::getInstance()->insertSession(targetFolderName, baseFolderName, 0);
+    int sessionId = BackupRepository::getInstance()->insertAppSession(targetFolderName, "iStow", istowVersion);
     int copied = 0;
     int failed = 0;
 
@@ -180,7 +297,7 @@ bool BackupSessionModel::backupOldIstow(const QString &directoryUrl)
         QCoreApplication::processEvents();
 
         if (QFile::copy(fileSrc, fileTarget)) {
-            BackupRepository::getInstance()->insertRecord(sessionId, fileSrc, fileTarget, "backup_old");
+            BackupRepository::getInstance()->insertAppRecord(sessionId, fileSrc, fileTarget, "backup_old");
             copied++;
         } else {
             setStatusMessage("Gagal mengkopi file: " + relativePath);

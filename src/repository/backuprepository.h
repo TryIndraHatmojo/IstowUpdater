@@ -27,6 +27,18 @@ public:
     QJsonArray getAllRecords();
     QJsonArray getRecordsBySession(int sessionId);
 
+    // ── Application Backup Sessions ──────────────────
+    int insertAppSession(const QString &folderName, const QString &appName, const QString &version);
+    void updateAppSessionStatus(int sessionId, const QString &status);
+    QJsonArray getAllAppSessions();
+    QJsonObject getAppSessionById(int sessionId);
+
+    // ── Application Backup Records ───────────────────
+    void insertAppRecord(int sessionId, const QString &filePath, const QString &backupPath,
+                         const QString &action);
+    QJsonArray getAllAppRecords();
+    QJsonArray getAppRecordsBySession(int sessionId);
+
 private:
     static BackupRepository *backupRepository;
 };
