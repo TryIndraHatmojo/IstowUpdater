@@ -15,6 +15,8 @@ qt_add_executable(appIstowUpdater
     src/repository/repository.cpp
     src/repository/localrepository.h
     src/repository/localrepository.cpp
+    src/repository/backuprepository.h
+    src/repository/backuprepository.cpp
     src/models/ShipModel.h
     src/models/ShipModel.cpp
     src/models/IstowImporter.h

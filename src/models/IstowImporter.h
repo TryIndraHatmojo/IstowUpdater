@@ -106,6 +106,7 @@ private:
     QStringList m_importLogs;
     QStringList m_dbCompareLogs;
     QString m_currentBackupFolder;
+    int m_currentBackupSessionId = -1;
 
     // ── Helper ──────────────────────────────────────────
     void appendLog(const QString &msg);

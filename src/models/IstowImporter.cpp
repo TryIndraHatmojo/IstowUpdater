@@ -1,5 +1,6 @@
 #include "IstowImporter.h"
 #include "localrepository.h"
+#include "backuprepository.h"
 
 #include <QFile>
 #include <QFileInfo>
@@ -140,6 +141,33 @@ bool IstowImporter::backupFile(const QString &filePath)
     QString backupPath = backupDir + "/" + fi.fileName();
 
     if (QFile::copy(filePath, backupPath)) {
+        if (m_currentBackupSessionId < 0) {
+            QString shipName = m_shipDetails.value("nama", "unknown").toString();
+            int idship = m_shipDetails.value("idship", -1).toInt();
+
+            appendLog("📝 DB Backup: membuat session " + folderName);
+
+            m_currentBackupSessionId = BackupRepository::getInstance()->insertSession(
+                folderName, shipName, idship);
+
+            if (m_currentBackupSessionId > 0) {
+                appendLog("✅ DB Backup: session tersimpan (ID "
+                          + QString::number(m_currentBackupSessionId) + ")");
+            } else {
+                appendLog("❌ DB Backup: gagal menyimpan session");
+            }
+        }
+
+        if (m_currentBackupSessionId > 0) {
+            BackupRepository::getInstance()->insertRecord(
+                m_currentBackupSessionId,
+                filePath,
+                backupPath,
+                "replace");
+
+            appendLog("📝 DB Backup: record tersimpan untuk " + QFileInfo(filePath).fileName());
+        }
+
         qDebug() << "[IstowImporter] Backup dibuat:" << backupPath;
         return true;
     } else {
@@ -219,6 +247,7 @@ bool IstowImporter::importAssets(const QString &filePath)
 
     // Set folder backup untuk sesi import kali ini
     m_currentBackupFolder = "backup_" + QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
+    m_currentBackupSessionId = -1;
 
     QString wDir = workDir();
 
