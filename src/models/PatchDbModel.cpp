@@ -282,14 +282,40 @@ bool PatchDbModel::loadAndCompare(const QString &istowFilePath) {
     QSet<QString> allTables = newTables | oldTables;
     QSet<QString> commonTables = newTables & oldTables;
 
-    m_allTableList = allTables.values();
-    m_allTableList.sort();
+    QStringList initialTableList = allTables.values();
+    initialTableList.sort();
 
     // 7. Compare data untuk tabel-tabel yang ada di kedua DB
     QStringList diffTables;
+    QStringList finalAllTables;
 
-    for (const QString &table : std::as_const(m_allTableList)) {
-        // Tabel hanya ada di satu DB → pasti diff
+    for (const QString &table : std::as_const(initialTableList)) {
+        QSqlDatabase dbNew = QSqlDatabase::database(m_connNew);
+        QSqlDatabase dbOld = QSqlDatabase::database(m_connOld);
+
+        // Cek jumlah row di masing-masing DB
+        int newCount = 0;
+        if (newTables.contains(table)) {
+            QSqlQuery q(dbNew);
+            q.exec(QString("SELECT count(*) FROM \"%1\"").arg(table));
+            if (q.next()) newCount = q.value(0).toInt();
+        }
+
+        int oldCount = 0;
+        if (oldTables.contains(table)) {
+            QSqlQuery q(dbOld);
+            q.exec(QString("SELECT count(*) FROM \"%1\"").arg(table));
+            if (q.next()) oldCount = q.value(0).toInt();
+        }
+
+        // Jika row di kedua DB sama-sama kosong (atau tidak ada), lewati dan jangan list tabel ini
+        if (newCount == 0 && oldCount == 0) {
+            continue;
+        }
+
+        finalAllTables.append(table);
+
+        // Tabel hanya ada di satu DB menanggapinya sebagai tabel yang berbeda (karena di sisi lain tidak ada dan row count > 0)
         if (!newTables.contains(table) || !oldTables.contains(table)) {
             diffTables.append(table);
             continue;
@@ -298,8 +324,6 @@ bool PatchDbModel::loadAndCompare(const QString &istowFilePath) {
         QString pk = detectPrimaryKey(table, m_connNew);
 
         // Ambil semua data dari kedua DB dan bandingkan
-        QSqlDatabase dbNew = QSqlDatabase::database(m_connNew);
-        QSqlDatabase dbOld = QSqlDatabase::database(m_connOld);
 
         // Ambil rows dari new DB
         QMap<QString, QVariantMap> newRows;
@@ -377,6 +401,7 @@ bool PatchDbModel::loadAndCompare(const QString &istowFilePath) {
 
     diffTables.sort();
     m_diffTableList = diffTables;
+    m_allTableList = finalAllTables;
 
     emit allTableListChanged();
     emit diffTableListChanged();
