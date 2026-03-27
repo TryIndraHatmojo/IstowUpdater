@@ -764,6 +764,120 @@ bool PatchDbModel::addRowToOldDb(const QString &tableName, const QVariant &pkVal
 }
 
 // ════════════════════════════════════════════════════════════
+// addAllNewRows
+// ════════════════════════════════════════════════════════════
+
+bool PatchDbModel::addAllNewRows(const QString &tableName) {
+    if (!QSqlDatabase::contains(m_connOld) || !QSqlDatabase::contains(m_connNew)) return false;
+
+    QSqlDatabase dbOld = QSqlDatabase::database(m_connOld);
+    dbOld.transaction();
+
+    QVariantList newRows = getNewDbRows(tableName);
+    int successCount = 0;
+    for (const QVariant &v : newRows) {
+        QVariantMap row = v.toMap();
+        if (row.value("_status").toString() == "new_only") {
+            QVariant pkValue = row.value("_pk");
+            QVariantMap rawNewRow = fetchRow(tableName, pkValue, m_connNew);
+            if (!rawNewRow.isEmpty()) {
+                QStringList cols, placeholders;
+                int idx = 0;
+                for (auto it = rawNewRow.constBegin(); it != rawNewRow.constEnd(); ++it) {
+                    cols << QString("\"%1\"").arg(it.key());
+                    placeholders << QString(":v%1").arg(idx);
+                    idx++;
+                }
+
+                QSqlQuery q(dbOld);
+                q.prepare(QString("INSERT INTO \"%1\" (%2) VALUES (%3)")
+                              .arg(tableName, cols.join(", "), placeholders.join(", ")));
+                
+                idx = 0;
+                for (auto it = rawNewRow.constBegin(); it != rawNewRow.constEnd(); ++it) {
+                    q.bindValue(QString(":v%1").arg(idx), it.value());
+                    idx++;
+                }
+                
+                if (q.exec()) {
+                    successCount++;
+                }
+            }
+        }
+    }
+
+    dbOld.commit();
+    if (successCount > 0) {
+        m_oldTableSizes[tableName] += successCount;
+        bumpDataVersion();
+        setStatusMessage(QString("✅ Add All selesai: %1 row ditambahkan ke %2").arg(successCount).arg(tableName));
+        return true;
+    } else {
+        setStatusMessage("Tidak ada row baru untuk ditambahkan.");
+        return false;
+    }
+}
+
+// ════════════════════════════════════════════════════════════
+// replaceAllDiffRows
+// ════════════════════════════════════════════════════════════
+
+bool PatchDbModel::replaceAllDiffRows(const QString &tableName) {
+    if (!QSqlDatabase::contains(m_connOld) || !QSqlDatabase::contains(m_connNew)) return false;
+
+    QSqlDatabase dbOld = QSqlDatabase::database(m_connOld);
+    dbOld.transaction();
+
+    QString pk = detectPrimaryKey(tableName, m_connNew);
+    QString pkCol = (pk == "rowid") ? "rowid" : QString("\"%1\"").arg(pk);
+
+    QVariantList newRows = getNewDbRows(tableName);
+    int successCount = 0;
+    for (const QVariant &v : newRows) {
+        QVariantMap row = v.toMap();
+        if (row.value("_status").toString() == "diff") {
+            QVariant pkValue = row.value("_pk");
+            QVariantMap rawNewRow = fetchRow(tableName, pkValue, m_connNew);
+            if (!rawNewRow.isEmpty()) {
+                QStringList setParts;
+                int idx = 0;
+                for (auto it = rawNewRow.constBegin(); it != rawNewRow.constEnd(); ++it) {
+                    if (it.key() == pk) continue;
+                    setParts << QString("\"%1\" = :v%2").arg(it.key()).arg(idx);
+                    idx++;
+                }
+
+                QSqlQuery q(dbOld);
+                q.prepare(QString("UPDATE \"%1\" SET %2 WHERE %3 = :pk")
+                              .arg(tableName, setParts.join(", "), pkCol));
+
+                idx = 0;
+                for (auto it = rawNewRow.constBegin(); it != rawNewRow.constEnd(); ++it) {
+                    if (it.key() == pk) continue;
+                    q.bindValue(QString(":v%1").arg(idx), it.value());
+                    idx++;
+                }
+                q.bindValue(":pk", pkValue);
+
+                if (q.exec()) {
+                    successCount++;
+                }
+            }
+        }
+    }
+
+    dbOld.commit();
+    if (successCount > 0) {
+        bumpDataVersion();
+        setStatusMessage(QString("✅ Replace All selesai: %1 row di-replace di %2").arg(successCount).arg(tableName));
+        return true;
+    } else {
+        setStatusMessage("Tidak ada row dengan data beda untuk di-replace.");
+        return false;
+    }
+}
+
+// ════════════════════════════════════════════════════════════
 // savePendingChanges — batch update
 // ════════════════════════════════════════════════════════════
 

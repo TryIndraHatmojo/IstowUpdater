@@ -92,6 +92,9 @@ public:
      */
     Q_INVOKABLE bool savePendingChanges(const QString &tableName, const QVariantList &changes);
 
+    Q_INVOKABLE bool addAllNewRows(const QString &tableName);
+    Q_INVOKABLE bool replaceAllDiffRows(const QString &tableName);
+
     /*!
      * \brief Copy text ke system clipboard.
      */

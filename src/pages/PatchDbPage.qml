@@ -523,17 +523,81 @@ Item {
                         spacing: 2
 
                         // Left: DB Baru (readonly)
-                        PatchDbTableView {
+                        ColumnLayout {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            mode: "readonly"
-                            tableName: selectedTable
-                            patchModel: patchModel
-                            primaryKey: patchModel.loaded ? patchModel.getPrimaryKey(selectedTable) : ""
-                            columns: currentColumns
-                            rows: currentNewRows
+                            spacing: 0
 
-                            onDataRefreshNeeded: root.loadTableData()
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 32
+                                color: "#F8FAFC"
+                                border.color: "#E2E8F0"
+                                border.width: 1
+                                visible: ((currentStats.newOnly || 0) > 0) || ((currentStats.diffCount || 0) > 0)
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 8
+                                    anchors.rightMargin: 8
+                                    spacing: 8
+
+                                    Text {
+                                        text: "Tindakan Massal:"
+                                        font.pixelSize: 11
+                                        color: "#64748B"
+                                    }
+
+                                    Button {
+                                        visible: (currentStats.newOnly || 0) > 0
+                                        text: "Add All (" + currentStats.newOnly + ")"
+                                        font.pixelSize: 11
+                                        font.bold: true
+                                        implicitHeight: 30
+                                        background: Rectangle {
+                                            radius: 4
+                                            color: parent.hovered ? "#059669" : "#10B981"
+                                        }
+                                        contentItem: Text {
+                                            text: parent.text; font: parent.font; color: "#FFFFFF"
+                                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                                        }
+                                        onClicked: patchModel.addAllNewRows(selectedTable)
+                                    }
+
+                                    Button {
+                                        visible: (currentStats.diffCount || 0) > 0
+                                        text: "Replace All (" + currentStats.diffCount + ")"
+                                        font.pixelSize: 11
+                                        font.bold: true
+                                        implicitHeight: 30
+                                        background: Rectangle {
+                                            radius: 4
+                                            color: parent.hovered ? "#D97706" : "#F59E0B"
+                                        }
+                                        contentItem: Text {
+                                            text: parent.text; font: parent.font; color: "#FFFFFF"
+                                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                                        }
+                                        onClicked: patchModel.replaceAllDiffRows(selectedTable)
+                                    }
+
+                                    Item { Layout.fillWidth: true }
+                                }
+                            }
+
+                            PatchDbTableView {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                mode: "readonly"
+                                tableName: selectedTable
+                                patchModel: patchModel
+                                primaryKey: patchModel.loaded ? patchModel.getPrimaryKey(selectedTable) : ""
+                                columns: currentColumns
+                                rows: currentNewRows
+
+                                onDataRefreshNeeded: root.loadTableData()
+                            }
                         }
 
                         // Divider
@@ -544,17 +608,32 @@ Item {
                         }
 
                         // Right: DB Target (editable)
-                        PatchDbTableView {
+                        ColumnLayout {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            mode: "editable"
-                            tableName: selectedTable
-                            patchModel: patchModel
-                            primaryKey: patchModel.loaded ? patchModel.getPrimaryKey(selectedTable) : ""
-                            columns: currentColumns
-                            rows: currentOldRows
+                            spacing: 0
 
-                            onDataRefreshNeeded: root.loadTableData()
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 32
+                                color: "#F8FAFC"
+                                border.color: "#E2E8F0"
+                                border.width: 1
+                                visible: ((currentStats.newOnly || 0) > 0) || ((currentStats.diffCount || 0) > 0)
+                            }
+
+                            PatchDbTableView {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                mode: "editable"
+                                tableName: selectedTable
+                                patchModel: patchModel
+                                primaryKey: patchModel.loaded ? patchModel.getPrimaryKey(selectedTable) : ""
+                                columns: currentColumns
+                                rows: currentOldRows
+
+                                onDataRefreshNeeded: root.loadTableData()
+                            }
                         }
                     }
                 }
