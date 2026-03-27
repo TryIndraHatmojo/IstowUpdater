@@ -497,6 +497,7 @@ QVariantList PatchDbModel::getNewDbRows(const QString &tableName) {
     QVariantList oldRows = fetchAllRows(tableName, pk, m_connOld);
 
     auto oldMap = indexByPk(oldRows);
+    QVariantList filteredRows;
 
     // Annotate each new row with diff info
     for (int i = 0; i < newRows.size(); i++) {
@@ -506,6 +507,7 @@ QVariantList PatchDbModel::getNewDbRows(const QString &tableName) {
         if (!oldMap.contains(pkVal)) {
             row["_status"] = "new_only";
             row["_diffCols"] = "";
+            filteredRows.append(row);
         } else {
             QVariantMap oldRow = oldMap[pkVal];
             QStringList diffCols;
@@ -515,12 +517,14 @@ QVariantList PatchDbModel::getNewDbRows(const QString &tableName) {
                 if (it.value().toString() != oldRow.value(it.key()).toString())
                     diffCols.append(it.key());
             }
-            row["_status"] = diffCols.isEmpty() ? "match" : "diff";
-            row["_diffCols"] = diffCols.join(",");
+            if (!diffCols.isEmpty()) {
+                row["_status"] = "diff";
+                row["_diffCols"] = diffCols.join(",");
+                filteredRows.append(row);
+            }
         }
-        newRows[i] = row;
     }
-    return newRows;
+    return filteredRows;
 }
 
 QVariantList PatchDbModel::getOldDbRows(const QString &tableName) {
@@ -529,6 +533,7 @@ QVariantList PatchDbModel::getOldDbRows(const QString &tableName) {
     QVariantList newRows = fetchAllRows(tableName, pk, m_connNew);
 
     auto newMap = indexByPk(newRows);
+    QVariantList filteredRows;
 
     for (int i = 0; i < oldRows.size(); i++) {
         QVariantMap row = oldRows[i].toMap();
@@ -537,6 +542,7 @@ QVariantList PatchDbModel::getOldDbRows(const QString &tableName) {
         if (!newMap.contains(pkVal)) {
             row["_status"] = "old_only";
             row["_diffCols"] = "";
+            filteredRows.append(row);
         } else {
             QVariantMap newRow = newMap[pkVal];
             QStringList diffCols;
@@ -546,12 +552,14 @@ QVariantList PatchDbModel::getOldDbRows(const QString &tableName) {
                 if (it.value().toString() != newRow.value(it.key()).toString())
                     diffCols.append(it.key());
             }
-            row["_status"] = diffCols.isEmpty() ? "match" : "diff";
-            row["_diffCols"] = diffCols.join(",");
+            if (!diffCols.isEmpty()) {
+                row["_status"] = "diff";
+                row["_diffCols"] = diffCols.join(",");
+                filteredRows.append(row);
+            }
         }
-        oldRows[i] = row;
     }
-    return oldRows;
+    return filteredRows;
 }
 
 // ════════════════════════════════════════════════════════════
