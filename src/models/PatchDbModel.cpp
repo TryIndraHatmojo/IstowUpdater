@@ -382,6 +382,7 @@ bool PatchDbModel::loadAndCompare(const QString &istowFilePath) {
             const QVariantMap &or_ = oldRows[it.key()];
             for (auto ci = nr.constBegin(); ci != nr.constEnd(); ++ci) {
                 if (ci.key() == "_pk_rowid") continue;
+                if (ci.key() == "created_at" || ci.key() == "updated_at") continue;
                 if (ci.value().toString() != or_.value(ci.key()).toString()) {
                     hasDiff = true; break;
                 }
@@ -504,6 +505,7 @@ QVariantList PatchDbModel::getNewDbRows(const QString &tableName) {
             QStringList diffCols;
             for (auto it = row.constBegin(); it != row.constEnd(); ++it) {
                 if (it.key().startsWith("_")) continue;
+                if (it.key() == "created_at" || it.key() == "updated_at") continue;
                 if (it.value().toString() != oldRow.value(it.key()).toString())
                     diffCols.append(it.key());
             }
@@ -534,6 +536,7 @@ QVariantList PatchDbModel::getOldDbRows(const QString &tableName) {
             QStringList diffCols;
             for (auto it = row.constBegin(); it != row.constEnd(); ++it) {
                 if (it.key().startsWith("_")) continue;
+                if (it.key() == "created_at" || it.key() == "updated_at") continue;
                 if (it.value().toString() != newRow.value(it.key()).toString())
                     diffCols.append(it.key());
             }
@@ -568,6 +571,7 @@ QVariantMap PatchDbModel::getTableStats(const QString &tableName) {
         bool same = true;
         for (auto ci = nr.constBegin(); ci != nr.constEnd(); ++ci) {
             if (ci.key().startsWith("_")) continue;
+            if (ci.key() == "created_at" || ci.key() == "updated_at") continue;
             if (ci.value().toString() != or_.value(ci.key()).toString()) {
                 same = false; break;
             }
