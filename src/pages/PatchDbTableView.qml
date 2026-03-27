@@ -35,7 +35,7 @@ Rectangle {
     clip: true
 
     readonly property int colMinWidth: 140
-    readonly property int actionColWidth: mode === "readonly" ? 200 : 0
+    readonly property int actionColWidth: mode === "readonly" ? 200 : 100
     readonly property int rowHeight: 38
     readonly property int headerHeight: 40
     readonly property real totalContentWidth: {
@@ -269,9 +269,8 @@ Rectangle {
                         }
                     }
 
-                    // Action column header (readonly mode)
+                    // Action column header
                     Rectangle {
-                        visible: mode === "readonly"
                         width: actionColWidth
                         height: headerHeight
                         color: "#1A3A5C"
@@ -382,16 +381,17 @@ Rectangle {
                             }
                         }
 
-                        // Action buttons column (readonly mode)
+                        // Action buttons column
                         Rectangle {
-                            visible: mode === "readonly"
                             width: actionColWidth
                             height: rowHeight
                             color: _getRowBgColor(rowData, rowIdx)
                             border.color: "#E2E8F0"
                             border.width: 1
 
+                            // Buttons for readonly panel
                             Row {
+                                visible: mode === "readonly"
                                 anchors.centerIn: parent
                                 spacing: 4
 
@@ -445,6 +445,39 @@ Rectangle {
                                         if (patchModel && rowData) {
                                             patchModel.addRowToOldDb(tableName, rowData._pk)
                                             rowAdded(rowData._pk)
+                                            dataRefreshNeeded()
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // Buttons for editable panel (DB Target)
+                            Row {
+                                visible: mode === "editable"
+                                anchors.centerIn: parent
+                                spacing: 4
+
+                                // Delete by ID
+                                Button {
+                                    text: "Delete"
+                                    font.pixelSize: 10
+                                    font.bold: true
+                                    implicitHeight: 26
+                                    implicitWidth: 80
+
+                                    background: Rectangle {
+                                        radius: 4
+                                        color: parent.hovered ? "#DC2626" : "#EF4444"
+                                    }
+                                    contentItem: Text {
+                                        text: parent.text; font: parent.font
+                                        color: "#FFFFFF"
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+                                    onClicked: {
+                                        if (patchModel && rowData) {
+                                            patchModel.deleteOldRowById(tableName, rowData._pk)
                                             dataRefreshNeeded()
                                         }
                                     }

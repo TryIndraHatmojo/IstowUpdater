@@ -133,7 +133,7 @@ Item {
                 spacing: 12
 
                 Button {
-                    text: "📁 Browse"
+                    text: "📁 Browse .istow"
                     font.pixelSize: 12
                     font.bold: true
                     implicitHeight: 34
@@ -619,7 +619,39 @@ Item {
                                 color: "#F8FAFC"
                                 border.color: "#E2E8F0"
                                 border.width: 1
-                                visible: ((currentStats.newOnly || 0) > 0) || ((currentStats.diffCount || 0) > 0)
+                                visible: (currentStats.oldOnly || 0) > 0
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 8
+                                    anchors.rightMargin: 8
+                                    spacing: 8
+
+                                    Text {
+                                        text: "Tindakan Massal:"
+                                        font.pixelSize: 11
+                                        color: "#64748B"
+                                    }
+
+                                    Button {
+                                        visible: (currentStats.oldOnly || 0) > 0
+                                        text: "Delete All Old Only (" + currentStats.oldOnly + ")"
+                                        font.pixelSize: 11
+                                        font.bold: true
+                                        implicitHeight: 30
+                                        background: Rectangle {
+                                            radius: 4
+                                            color: parent.hovered ? "#DC2626" : "#EF4444"
+                                        }
+                                        contentItem: Text {
+                                            text: parent.text; font: parent.font; color: "#FFFFFF"
+                                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                                        }
+                                        onClicked: patchModel.deleteAllOldOnlyRows(selectedTable)
+                                    }
+
+                                    Item { Layout.fillWidth: true }
+                                }
                             }
 
                             PatchDbTableView {

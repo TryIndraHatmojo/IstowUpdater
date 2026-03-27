@@ -94,6 +94,16 @@ public:
 
     Q_INVOKABLE bool addAllNewRows(const QString &tableName);
     Q_INVOKABLE bool replaceAllDiffRows(const QString &tableName);
+    
+    /*!
+     * \brief Delete a row in the target DB (Old DB) by PK.
+     */
+    Q_INVOKABLE bool deleteOldRowById(const QString &tableName, const QVariant &pkValue);
+
+    /*!
+     * \brief Delete all rows in the target DB that only exist in the old DB (old_only).
+     */
+    Q_INVOKABLE bool deleteAllOldOnlyRows(const QString &tableName);
 
     /*!
      * \brief Copy text ke system clipboard.

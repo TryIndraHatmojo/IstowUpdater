@@ -142,7 +142,7 @@ Item {
                             }
 
                             Text {
-                                text: "Pilih file .istow yang berisi data kapal untuk di-import. Asset akan diekstrak ke folder kerja."
+                                text: "Pilih file .istow yang berisi data kapal untuk di-import. Asset akan diekstrak ke folder kerja dan struktur database akan diupdate."
                                 font.pixelSize: 12
                                 color: "#718096"
                                 wrapMode: Text.Wrap
@@ -394,7 +394,7 @@ Item {
                             id: importBtn
                             Layout.fillWidth: true
                             height: 44
-                            text: importer.importing ? "Mengimport..." : "⬇ Import Assets & Register"
+                            text: importer.importing ? "Mengimport..." : "⬇ Import Assets & Sync DB Structure"
                             enabled: false
                             font.pixelSize: 14
                             font.bold: true

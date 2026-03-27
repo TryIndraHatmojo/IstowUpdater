@@ -886,6 +886,77 @@ bool PatchDbModel::replaceAllDiffRows(const QString &tableName) {
 }
 
 // ════════════════════════════════════════════════════════════
+// deleteOldRowById
+// ════════════════════════════════════════════════════════════
+
+bool PatchDbModel::deleteOldRowById(const QString &tableName, const QVariant &pkValue) {
+    if (!QSqlDatabase::contains(m_connOld)) return false;
+
+    QString pk = detectPrimaryKey(tableName, m_connOld);
+    QSqlDatabase db = QSqlDatabase::database(m_connOld);
+    QSqlQuery q(db);
+
+    QString pkCol = (pk == "rowid") ? "rowid" : QString("\"%1\"").arg(pk);
+    q.prepare(QString("DELETE FROM \"%1\" WHERE %2 = :pk").arg(tableName, pkCol));
+    q.bindValue(":pk", pkValue);
+
+    if (!q.exec()) {
+        setStatusMessage("❌ Delete row gagal: " + q.lastError().text());
+        return false;
+    }
+
+    if (m_oldTableSizes.contains(tableName) && m_oldTableSizes[tableName] > 0) {
+        m_oldTableSizes[tableName]--;
+    }
+    bumpDataVersion();
+    setStatusMessage("✅ Row berhasil dihapus (PK: " + pkValue.toString() + ")");
+    return true;
+}
+
+// ════════════════════════════════════════════════════════════
+// deleteAllOldOnlyRows
+// ════════════════════════════════════════════════════════════
+
+bool PatchDbModel::deleteAllOldOnlyRows(const QString &tableName) {
+    if (!QSqlDatabase::contains(m_connOld)) return false;
+
+    QSqlDatabase dbOld = QSqlDatabase::database(m_connOld);
+    dbOld.transaction();
+
+    QString pk = detectPrimaryKey(tableName, m_connOld);
+    QString pkCol = (pk == "rowid") ? "rowid" : QString("\"%1\"").arg(pk);
+
+    QVariantList oldRows = getOldDbRows(tableName);
+    int successCount = 0;
+
+    QSqlQuery q(dbOld);
+    q.prepare(QString("DELETE FROM \"%1\" WHERE %2 = :pk").arg(tableName, pkCol));
+
+    for (const QVariant &v : oldRows) {
+        QVariantMap row = v.toMap();
+        if (row.value("_status").toString() == "old_only") {
+            q.bindValue(":pk", row.value("_pk"));
+            if (q.exec()) {
+                successCount++;
+            }
+        }
+    }
+
+    dbOld.commit();
+    if (successCount > 0) {
+        if (m_oldTableSizes.contains(tableName)) {
+            m_oldTableSizes[tableName] -= successCount;
+        }
+        bumpDataVersion();
+        setStatusMessage(QString("✅ Delete All selesai: %1 row dihapus dari %2").arg(successCount).arg(tableName));
+        return true;
+    } else {
+        setStatusMessage("Tidak ada row lama (old_only) untuk dihapus.");
+        return false;
+    }
+}
+
+// ════════════════════════════════════════════════════════════
 // savePendingChanges — batch update
 // ════════════════════════════════════════════════════════════
 
