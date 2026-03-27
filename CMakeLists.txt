@@ -27,6 +27,8 @@ qt_add_executable(appIstowUpdater
     src/models/BackupSessionModel.cpp
     src/models/InstallerModel.h
     src/models/InstallerModel.cpp
+    src/models/PatchDbModel.h
+    src/models/PatchDbModel.cpp
 )
 
 qt_add_qml_module(appIstowUpdater
@@ -40,6 +42,8 @@ qt_add_qml_module(appIstowUpdater
         src/pages/InstallerFormPopup.qml
         src/pages/RollbackApplicationPage.qml
         src/pages/PatchDbPage.qml
+        src/pages/PatchDbTableView.qml
+        src/pages/PatchDbTableAccordion.qml
     RESOURCES
         qtquickcontrols2.conf
 )

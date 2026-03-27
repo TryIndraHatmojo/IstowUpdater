@@ -356,6 +356,8 @@ QString IstowImporter::extractDbToTemp(const QString &filePath)
                       + "/IstowUpdater_temp";
     QDir().mkpath(tempDir);
 
+    QString targetDbId = m_shipDetails.value("dbid", "").toString();
+
     QDataStream dataStream(&file);
 
     while (!dataStream.atEnd()) {
@@ -368,8 +370,23 @@ QString IstowImporter::extractDbToTemp(const QString &filePath)
         }
 
         if (fileName.endsWith(".db")) {
+            // Jika ada '/' di depan, abaikan untuk sementara saat pengecekan folder
+            QString cleanName = fileName.startsWith("/") ? fileName.mid(1) : fileName;
+            
+            // Hanya proses file yang ada di root directory .istow (tidak mengandung '/' lagi setelah dibersihkan)
+            if (cleanName.contains('/')) {
+                continue;
+            }
+
             // Ambil nama file saja (tanpa subfolder)
             QString dbBaseName = QFileInfo(fileName).fileName();
+            
+            // Verifikasi bahwa file yang diekstrak secara persis sama dengan id db target ".db"
+            QString expectedName = targetDbId.endsWith(".db") ? targetDbId : (targetDbId + ".db");
+            if (!targetDbId.isEmpty() && dbBaseName != expectedName) {
+                continue;
+            }
+
             QString tempDbPath = tempDir + "/" + dbBaseName;
 
             // Backup jika sudah ada file temp sebelumnya
