@@ -29,6 +29,8 @@ qt_add_executable(appIstowUpdater
     src/models/InstallerModel.cpp
     src/models/PatchDbModel.h
     src/models/PatchDbModel.cpp
+    src/models/CompareAndPatchDbModel.h
+    src/models/CompareAndPatchDbModel.cpp
 )
 
 qt_add_qml_module(appIstowUpdater
@@ -44,6 +46,7 @@ qt_add_qml_module(appIstowUpdater
         src/pages/PatchDbPage.qml
         src/pages/PatchDbTableView.qml
         src/pages/PatchDbTableAccordion.qml
+        src/pages/CompareAndPatchDbPage.qml
     RESOURCES
         qtquickcontrols2.conf
 )

@@ -62,6 +62,7 @@ Window {
                     TabButton { text: "Update Application" }
                     TabButton { text: "Rollback Application" }
                     TabButton { text: "Patch DB Data" }
+                    TabButton { text: "Compare and Patch DB" }
                 }
 
                 StackLayout {
@@ -91,6 +92,10 @@ Window {
                     }
 
                     PatchDbPage {
+                        anchors.fill: parent
+                    }
+
+                    CompareAndPatchDbPage {
                         anchors.fill: parent
                     }
                 }
