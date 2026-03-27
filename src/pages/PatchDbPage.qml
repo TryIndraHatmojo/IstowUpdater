@@ -382,6 +382,41 @@ Item {
                                     Layout.fillWidth: true
                                     elide: Text.ElideRight
                                 }
+
+                                ColumnLayout {
+                                    spacing: 2
+                                    Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+
+                                    Rectangle {
+                                        width: newCountText.implicitWidth + 8
+                                        height: 14
+                                        radius: 4
+                                        color: "#DCFCE7"
+                                        Layout.alignment: Qt.AlignRight
+                                        Text {
+                                            id: newCountText
+                                            anchors.centerIn: parent
+                                            text: "New DB: " + patchModel.getNewRowCount(modelData) + " Rows"
+                                            font.pixelSize: 9
+                                            color: "#065F46"
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        width: oldCountText.implicitWidth + 8
+                                        height: 14
+                                        radius: 4
+                                        color: "#FEE2E2"
+                                        Layout.alignment: Qt.AlignRight
+                                        Text {
+                                            id: oldCountText
+                                            anchors.centerIn: parent
+                                            text: "Target DB: " + patchModel.getOldRowCount(modelData) + " Rows"
+                                            font.pixelSize: 9
+                                            color: "#991B1B"
+                                        }
+                                    }
+                                }
                             }
 
                             MouseArea {

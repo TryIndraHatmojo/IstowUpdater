@@ -91,7 +91,10 @@ void PatchDbModel::cleanup() {
     m_diffTableList.clear();
     m_allTableList.clear();
     m_shipDetails.clear();
+    m_newTableSizes.clear();
+    m_oldTableSizes.clear();
     emit diffTableListChanged();
+
     emit allTableListChanged();
     emit shipDetailsChanged();
 }
@@ -307,6 +310,9 @@ bool PatchDbModel::loadAndCompare(const QString &istowFilePath) {
             q.exec(QString("SELECT count(*) FROM \"%1\"").arg(table));
             if (q.next()) oldCount = q.value(0).toInt();
         }
+
+        m_newTableSizes[table] = newCount;
+        m_oldTableSizes[table] = oldCount;
 
         // Jika row di kedua DB sama-sama kosong (atau tidak ada), lewati dan jangan list tabel ini
         if (newCount == 0 && oldCount == 0) {
@@ -590,6 +596,14 @@ QVariantMap PatchDbModel::getTableStats(const QString &tableName) {
     stats["diffCount"] = diffCount;
     stats["matchCount"] = matchCount;
     return stats;
+}
+
+int PatchDbModel::getNewRowCount(const QString &tableName) {
+    return m_newTableSizes.value(tableName, 0);
+}
+
+int PatchDbModel::getOldRowCount(const QString &tableName) {
+    return m_oldTableSizes.value(tableName, 0);
 }
 
 // ════════════════════════════════════════════════════════════

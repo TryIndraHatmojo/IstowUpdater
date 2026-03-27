@@ -66,6 +66,8 @@ public:
     Q_INVOKABLE QVariantList getNewDbRows(const QString &tableName);
     Q_INVOKABLE QVariantList getOldDbRows(const QString &tableName);
     Q_INVOKABLE QVariantMap getTableStats(const QString &tableName);
+    Q_INVOKABLE int getNewRowCount(const QString &tableName);
+    Q_INVOKABLE int getOldRowCount(const QString &tableName);
 
     // ── Data Modification ───────────────────────────
 
@@ -119,6 +121,9 @@ private:
     QString m_oldDbPath;
     QString m_connNew;
     QString m_connOld;
+    
+    QMap<QString, int> m_newTableSizes;
+    QMap<QString, int> m_oldTableSizes;
 
     // ── Helpers ─────────────────────────────────────
     void setComparing(bool v);
