@@ -92,6 +92,7 @@ Rectangle {
         changes[String(pk) + "::" + col] = value
         pendingChanges = changes
         pendingCount = Object.keys(pendingChanges).length
+        console.log("Pending changes updated, count:", pendingCount)
     }
 
     function clearPending() {
@@ -135,18 +136,22 @@ Rectangle {
         // ── Save Button (editable mode) ─────────────────
         Rectangle {
             Layout.fillWidth: true
-            height: pendingCount > 0 ? 44 : 0
-            visible: mode === "editable" && pendingCount > 0
+            height: (mode === "editable" && pendingCount > 0) ? 44 : 0
+            Layout.preferredHeight: height
+            visible: height > 0
             color: "#EFF6FF"
             border.color: "#3B82F6"
             border.width: 1
             radius: 6
+            clip: true
+            z: 10
 
             Behavior on height { NumberAnimation { duration: 200 } }
 
             RowLayout {
                 anchors.fill: parent
                 anchors.margins: 6
+                visible: pendingCount > 0
 
                 Text {
                     text: "⚡ " + pendingCount + " perubahan pending"
