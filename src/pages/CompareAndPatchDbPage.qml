@@ -279,7 +279,7 @@ Item {
                         font.pixelSize: 12
                         font.bold: true
                         implicitHeight: 36
-                        enabled: bothPathsSelected
+                        enabled: bothPathsSelected && !compareModel.structureSynced
 
                         background: Rectangle {
                             radius: 6
