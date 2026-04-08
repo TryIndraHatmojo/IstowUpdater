@@ -57,7 +57,7 @@ Window {
                     Layout.fillWidth: true
                     currentIndex: 0
 
-                    TabButton { text: "Update Assets and Sync DB Structure" }
+                    TabButton { text: "Create/Update Assets and Sync DB Structure" }
                     TabButton { text: "Rollback Assets" }
                     TabButton { text: "Update Application" }
                     TabButton { text: "Rollback Application" }

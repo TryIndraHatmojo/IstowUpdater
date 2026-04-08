@@ -36,13 +36,17 @@ Item {
             selectedFilePath.text = path
             console.log("[BrowseDotIstow] File dipilih:", path)
 
+            // Reset state
+            detailsCard.visible = false
+            fallbackFormCard.visible = false
+            importBtn.enabled = false
+
             // Baca metadata otomatis
             if (importer.readDetails(path)) {
                 detailsCard.visible = true
                 importBtn.enabled = true
             } else {
-                detailsCard.visible = false
-                importBtn.enabled = false
+                fallbackFormCard.visible = true
             }
         }
     }
@@ -257,6 +261,111 @@ Item {
 
                                 Text { text: "Versi:"; font.pixelSize: 12; color: "#718096"; font.bold: true }
                                 Text { text: String(importer.shipDetails["version"] ?? "-"); font.pixelSize: 12; color: "#2D3748" }
+                            }
+                        }
+                    }
+
+                    // ── Card: Fallback Form ──────────────
+                    Rectangle {
+                        id: fallbackFormCard
+                        Layout.fillWidth: true
+                        height: fallbackFormContent.implicitHeight + 48
+                        radius: 12
+                        color: "#FFFFFF"
+                        border.color: "#F6AD55"
+                        border.width: 1
+                        visible: false
+
+                        ColumnLayout {
+                            id: fallbackFormContent
+                            anchors { fill: parent; margins: 24 }
+                            spacing: 12
+
+                            Text {
+                                text: "⚠️ Metadata Tidak Ditemukan"
+                                font.pixelSize: 16
+                                font.bold: true
+                                color: "#C05621"
+                            }
+
+                            Text {
+                                text: "File .istow yang dipilih tidak memiliki file .details. Silakan isi form berikut untuk melanjutkan."
+                                font.pixelSize: 12
+                                color: "#718096"
+                                wrapMode: Text.Wrap
+                                Layout.fillWidth: true
+                            }
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 1
+                                color: "#E2E8F0"
+                            }
+
+                            GridLayout {
+                                Layout.fillWidth: true
+                                columns: 2
+                                columnSpacing: 16
+                                rowSpacing: 8
+
+                                Text { text: "Nama Kapal:"; font.pixelSize: 12; color: "#4A5568" }
+                                TextField { id: fNama; Layout.fillWidth: true; placeholderText: "Misal: MV. Sally Fortune" }
+
+                                Text { text: "Tipe:"; font.pixelSize: 12; color: "#4A5568" }
+                                TextField { id: fTipe; Layout.fillWidth: true; placeholderText: "Misal: Container" }
+
+                                Text { text: "Perusahaan:"; font.pixelSize: 12; color: "#4A5568" }
+                                TextField { id: fCompany; Layout.fillWidth: true; placeholderText: "Misal: PT. Indonesian Fortune Lloyd" }
+
+                                Text { text: "ID Kapal:"; font.pixelSize: 12; color: "#4A5568" }
+                                TextField { id: fIdship; Layout.fillWidth: true; placeholderText: "Misal: 55"; validator: IntValidator {} }
+
+                                Text { text: "DB File:"; font.pixelSize: 12; color: "#4A5568" }
+                                TextField { id: fDbid; Layout.fillWidth: true; placeholderText: "Misal: 55_MVSallyFortune.db" }
+
+                                Text { text: "Prefix:"; font.pixelSize: 12; color: "#4A5568" }
+                                TextField { id: fFileprefix; Layout.fillWidth: true; placeholderText: "Misal: 55_MVSallyFortune_" }
+
+                                Text { text: "Versi:"; font.pixelSize: 12; color: "#4A5568" }
+                                TextField { id: fVersion; Layout.fillWidth: true; placeholderText: "Misal: 0"; validator: IntValidator {} }
+                            }
+
+                            Button {
+                                text: "Simpan & Lanjutkan"
+                                Layout.fillWidth: true
+                                height: 40
+                                font.pixelSize: 14
+                                font.bold: true
+
+                                background: Rectangle {
+                                    radius: 8
+                                    color: parent.hovered ? "#DD6B20" : "#C05621"
+                                }
+
+                                contentItem: Text {
+                                    text: parent.text
+                                    font: parent.font
+                                    color: "#FFFFFF"
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+
+                                onClicked: {
+                                    let details = {
+                                        nama: fNama.text,
+                                        tipe: fTipe.text,
+                                        company: fCompany.text,
+                                        idship: parseInt(fIdship.text) || 0,
+                                        dbid: fDbid.text,
+                                        fileprefix: fFileprefix.text,
+                                        version: parseInt(fVersion.text) || 0
+                                    }
+                                    if (importer.generateDetailsAndLoad(details)) {
+                                        fallbackFormCard.visible = false
+                                        detailsCard.visible = true
+                                        importBtn.enabled = true
+                                    }
+                                }
                             }
                         }
                     }

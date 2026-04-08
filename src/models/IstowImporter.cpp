@@ -225,6 +225,10 @@ bool IstowImporter::readDetails(const QString &filePath)
 
             setStatusMessage("Metadata berhasil dibaca: " +
                              obj.value("nama").toString());
+                             
+            // Cek dan tambahkan ke local database
+            registerToLocalDb();
+            
             file.close();
             return true;
         }
@@ -233,6 +237,40 @@ bool IstowImporter::readDetails(const QString &filePath)
     setStatusMessage("WARNING: File .details tidak ditemukan dalam arsip .istow");
     file.close();
     return false;
+}
+
+// ════════════════════════════════════════════════════════════
+// generateDetailsAndLoad — Generate .details jika tidak ada
+// ════════════════════════════════════════════════════════════
+
+bool IstowImporter::generateDetailsAndLoad(const QVariantMap &details)
+{
+    QString filePrefix = details.value("fileprefix").toString();
+    QString fileName = filePrefix + "ship.details";
+    QString tmpDir = workDir() + "tmp/";
+    QDir().mkpath(tmpDir);
+
+    QString filePath = tmpDir + fileName;
+    QFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly)) {
+        setStatusMessage("ERROR: Gagal membuat " + fileName);
+        return false;
+    }
+
+    QJsonObject obj = QJsonObject::fromVariantMap(details);
+    QJsonDocument doc(obj);
+    file.write(doc.toJson(QJsonDocument::Compact));
+    file.close();
+
+    m_shipDetails = details;
+    emit detailsChanged();
+
+    setStatusMessage("Metadata berhasil dibuat: " + details.value("nama").toString());
+    
+    // Cek dan tambahkan ke local database
+    registerToLocalDb();
+    
+    return true;
 }
 
 // ════════════════════════════════════════════════════════════

@@ -60,6 +60,13 @@ public:
     Q_INVOKABLE bool readDetails(const QString &filePath);
 
     /*!
+     * \brief Generate file .details manual dan load ke m_shipDetails
+     * \param details QVariantMap berisi data kapal
+     * \return true jika berhasil generate
+     */
+    Q_INVOKABLE bool generateDetailsAndLoad(const QVariantMap &details);
+
+    /*!
      * \brief Ekstrak semua asset dari .istow KECUALI file .db
      * \param filePath path absolut ke file .istow
      * \return true jika ekstraksi berhasil
