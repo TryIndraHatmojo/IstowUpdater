@@ -66,6 +66,16 @@ Item {
     // Derived: both paths selected
     property bool bothPathsSelected: compareModel.newDbPath !== "" && compareModel.targetDbPath !== ""
 
+    // ── Pagination ──────────────────────────────────
+    property int currentPage: 1
+    property int itemsPerPage: 50
+
+    function getPagedRows(allRows) {
+        if (!allRows) return []
+        let startIdx = (currentPage - 1) * itemsPerPage
+        return allRows.slice(startIdx, startIdx + itemsPerPage)
+    }
+
     function loadTableData() {
         if (!selectedTable || !compareModel.loaded) {
             currentColumns = []
@@ -74,6 +84,7 @@ Item {
             currentStats = ({})
             return
         }
+        currentPage = 1
         currentColumns = compareModel.getColumns(selectedTable)
         currentNewRows = compareModel.getNewDbRows(selectedTable)
         currentOldRows = compareModel.getOldDbRows(selectedTable)
@@ -864,7 +875,7 @@ Item {
                                     patchModel: compareModel
                                     primaryKey: compareModel.loaded ? compareModel.getPrimaryKey(selectedTable) : ""
                                     columns: currentColumns
-                                    rows: currentNewRows
+                                    rows: getPagedRows(currentNewRows)
 
                                     onDataRefreshNeeded: root.loadTableData()
                                 }
@@ -932,9 +943,77 @@ Item {
                                     patchModel: compareModel
                                     primaryKey: compareModel.loaded ? compareModel.getPrimaryKey(selectedTable) : ""
                                     columns: currentColumns
-                                    rows: currentOldRows
+                                    rows: getPagedRows(currentOldRows)
 
                                     onDataRefreshNeeded: root.loadTableData()
+                                }
+                            }
+                        }
+
+                        // ── Pagination Controls ─────────────────────────
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: 48
+                            color: "#F8FAFC"
+                            border.color: "#E2E8F0"
+                            border.width: 1
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 16
+                                anchors.rightMargin: 16
+                                spacing: 16
+
+                                Text {
+                                    text: "Total Data: " + Math.max(currentNewRows.length, currentOldRows.length)
+                                    font.pixelSize: 12
+                                    color: "#64748B"
+                                }
+
+                                Item { Layout.fillWidth: true }
+
+                                Button {
+                                    text: "◀ Prev"
+                                    enabled: currentPage > 1
+                                    onClicked: currentPage--
+                                    font.pixelSize: 12
+                                    implicitHeight: 30
+                                }
+                                
+                                Text {
+                                    property int totalPages: Math.max(1, Math.ceil(Math.max(currentNewRows.length, currentOldRows.length) / itemsPerPage))
+                                    text: "Halaman " + currentPage + " dari " + totalPages
+                                    font.pixelSize: 12
+                                    color: "#334155"
+                                }
+
+                                Button {
+                                    property int totalPages: Math.ceil(Math.max(currentNewRows.length, currentOldRows.length) / itemsPerPage)
+                                    text: "Next ▶"
+                                    enabled: currentPage < totalPages
+                                    onClicked: currentPage++
+                                    font.pixelSize: 12
+                                    implicitHeight: 30
+                                }
+                                
+                                Rectangle { width: 1; height: 24; color: "#E2E8F0" }
+                                
+                                Text {
+                                    text: "Per Halaman:"
+                                    font.pixelSize: 12
+                                    color: "#64748B"
+                                }
+
+                                ComboBox {
+                                    model: [50, 100, 500, 1000]
+                                    currentIndex: 0
+                                    implicitHeight: 30
+                                    implicitWidth: 80
+                                    font.pixelSize: 12
+                                    onCurrentValueChanged: {
+                                        itemsPerPage = model[currentIndex]
+                                        currentPage = 1
+                                    }
                                 }
                             }
                         }
