@@ -3,6 +3,7 @@
 #include <QQuickStyle>
 #include "localrepository.h"
 #include "installerrepository.h"
+#include "src/repository/logrepository.h"
 
 int main(int argc, char *argv[])
 {
@@ -22,6 +23,7 @@ int main(int argc, char *argv[])
     // Inisialisasi database lokal sebelum QML engine berjalan
     LocalRepository::getInstance();
     InstallerRepository::getInstance();
+    LogRepository::getInstance();
 
     QQmlApplicationEngine engine;
     QObject::connect(

@@ -1,6 +1,7 @@
 #include "IstowImporter.h"
 #include "localrepository.h"
 #include "backuprepository.h"
+#include "../repository/logrepository.h"
 
 #include <QFile>
 #include <QFileInfo>
@@ -289,16 +290,22 @@ bool IstowImporter::importAssets(const QString &filePath)
 
     QString wDir = workDir();
 
+    QString targetShip = m_shipDetails.value("nama", "unknown").toString();
+
     QFile file(localPath);
     if (!file.exists()) {
-        setStatusMessage("ERROR: File tidak ditemukan: " + localPath);
+        QString errorMsg = "ERROR: File tidak ditemukan: " + localPath;
+        setStatusMessage(errorMsg);
         setImporting(false);
+        LogRepository::getInstance()->insertLog("Import .istow", targetShip, "Failed", "File tidak ditemukan");
         emit importFinished(false, "File tidak ditemukan");
         return false;
     }
     if (!file.open(QIODevice::ReadOnly)) {
-        setStatusMessage("ERROR: Gagal membuka file: " + localPath);
+        QString errorMsg = "ERROR: Gagal membuka file: " + localPath;
+        setStatusMessage(errorMsg);
         setImporting(false);
+        LogRepository::getInstance()->insertLog("Import .istow", targetShip, "Failed", "Gagal membuka file");
         emit importFinished(false, "Gagal membuka file");
         return false;
     }
@@ -321,6 +328,10 @@ bool IstowImporter::importAssets(const QString &filePath)
         }
 
         // ─── SKIP file .db ───────────────────────────────
+        // Penjelasan: Kita meng-skip SEMUA file yang berekstensi .db pada tahap ini.
+        // Tujuannya agar database existing tidak tertimpa langsung secara mentah-mentah
+        // (overwrite) oleh file ekstraksi. Database membutuhkan penanganan (handling)
+        // secara khusus di proses selanjutnya (seperti migrasi skema dan komparasi data).
         if (fileName.endsWith(".db")) {
             qDebug() << "[IstowImporter] SKIP file DB:" << fileName;
             skippedDb++;
@@ -367,9 +378,14 @@ bool IstowImporter::importAssets(const QString &filePath)
     file.close();
     setImporting(false);
 
-    QString msg = QString("Import selesai: %1 asset diekstrak, %2 file DB di-skip")
+    QString msg = QString("Import selesai: %1 asset diekstrak, %2 file DB di-skip (File DB sengaja dilewati untuk menghindari overwrite data lama dan akan diproses secara khusus pada tahap Compare & Patch).")
                       .arg(assetCount).arg(skippedDb);
     setStatusMessage(msg);
+    
+    // Logging activity
+    QString logPath = LogRepository::getInstance()->saveLogToFile("Import", targetShip, m_importLogs);
+    LogRepository::getInstance()->insertLog("Import .istow", targetShip, "Success", msg, logPath);
+    
     emit importFinished(true, msg);
     return true;
 }
@@ -811,6 +827,13 @@ bool IstowImporter::compareAndMigrateDb(const QString &tempDbPath)
     QSqlDatabase::removeDatabase(connOld);
     QSqlDatabase::removeDatabase(connNew);
 
-    setStatusMessage("Compare & Migrate DB selesai");
+    QString msg = "Compare & Migrate DB selesai";
+    setStatusMessage(msg);
+
+    // Logging activity
+    QString targetShip = m_shipDetails.value("nama", "unknown").toString();
+    QString logPath = LogRepository::getInstance()->saveLogToFile("MigrateDB_Schema", targetShip, m_dbCompareLogs);
+    LogRepository::getInstance()->insertLog("Migrate DB Schema", targetShip, "Success", msg, logPath);
+
     return true;
 }

@@ -31,6 +31,10 @@ qt_add_executable(appIstowUpdater
     src/models/PatchDbModel.cpp
     src/models/CompareAndPatchDbModel.h
     src/models/CompareAndPatchDbModel.cpp
+    src/repository/logrepository.h
+    src/repository/logrepository.cpp
+    src/models/LogModel.h
+    src/models/LogModel.cpp
 )
 
 qt_add_qml_module(appIstowUpdater
@@ -43,6 +47,7 @@ qt_add_qml_module(appIstowUpdater
         src/pages/UpdateApplicationPage.qml
         src/pages/InstallerFormPopup.qml
         src/pages/RollbackApplicationPage.qml
+        src/pages/LogsPage.qml
         src/pages/PatchDbPage.qml
         src/pages/PatchDbTableView.qml
         src/pages/PatchDbTableAccordion.qml

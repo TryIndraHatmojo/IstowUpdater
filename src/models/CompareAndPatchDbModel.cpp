@@ -1,4 +1,5 @@
 #include "CompareAndPatchDbModel.h"
+#include "../repository/logrepository.h"
 
 #include <QFile>
 #include <QFileInfo>
@@ -813,8 +814,15 @@ bool CompareAndPatchDbModel::syncData() {
     emit allTableListChanged();
     emit diffTableListChanged();
 
-    setStatusMessage(QString("✅ Compare data selesai: %1 tabel total, %2 tabel memiliki perbedaan data")
-                         .arg(m_allTableList.size()).arg(m_diffTableList.size()));
+    QString msg = QString("✅ Compare data selesai: %1 tabel total, %2 tabel memiliki perbedaan data")
+                         .arg(m_allTableList.size()).arg(m_diffTableList.size());
+    setStatusMessage(msg);
+    
+    // Log result
+    QString targetShip = QFileInfo(m_targetDbPath).fileName();
+    QString logPath = LogRepository::getInstance()->saveLogToFile("CompareDB", targetShip, m_structureLogs);
+    LogRepository::getInstance()->insertLog("Compare DB", targetShip, "Success", QString("Total differences: %1 tables").arg(m_diffTableList.size()), logPath);
+
     setComparing(false);
     setLoaded(true);
     return true;
@@ -1180,6 +1188,9 @@ bool CompareAndPatchDbModel::addAllNewRows(const QString &tableName) {
 
     QVariantList newRows = getNewDbRows(tableName);
     int successCount = 0;
+    QStringList logs;
+    logs << QString("==== [ADD ALL LOGS for %1] ====").arg(tableName);
+
     for (const QVariant &v : newRows) {
         QVariantMap row = v.toMap();
         if (row.value("_status").toString() == "new_only") {
@@ -1206,6 +1217,7 @@ bool CompareAndPatchDbModel::addAllNewRows(const QString &tableName) {
 
                 if (q.exec()) {
                     successCount++;
+                    logs << QString("Added Row PK: %1").arg(pkValue.toString());
                 }
             }
         }
@@ -1215,6 +1227,12 @@ bool CompareAndPatchDbModel::addAllNewRows(const QString &tableName) {
     if (successCount > 0) {
         m_oldTableSizes[tableName] += successCount;
         bumpDataVersion();
+        QString ship = QFileInfo(m_targetDbPath).fileName();
+        
+        logs.prepend(QString("Total rows added: %1").arg(successCount));
+        QString logPath = LogRepository::getInstance()->saveLogToFile("ComparePatch_AddAll", ship, logs);
+        
+        LogRepository::getInstance()->insertLog("Compare & Patch DB (Add All)", ship, "Success", QString("%1 rows added to %2").arg(successCount).arg(tableName), logPath);
         setStatusMessage(QString("✅ Add All selesai: %1 row ditambahkan ke %2").arg(successCount).arg(tableName));
         return true;
     } else {
@@ -1238,6 +1256,9 @@ bool CompareAndPatchDbModel::replaceAllDiffRows(const QString &tableName) {
 
     QVariantList newRows = getNewDbRows(tableName);
     int successCount = 0;
+    QStringList logs;
+    logs << QString("==== [REPLACE ALL LOGS for %1] ====").arg(tableName);
+
     for (const QVariant &v : newRows) {
         QVariantMap row = v.toMap();
         if (row.value("_status").toString() == "diff") {
@@ -1266,6 +1287,7 @@ bool CompareAndPatchDbModel::replaceAllDiffRows(const QString &tableName) {
 
                 if (q.exec()) {
                     successCount++;
+                    logs << QString("Replaced Row PK: %1").arg(pkValue.toString());
                 }
             }
         }
@@ -1274,6 +1296,12 @@ bool CompareAndPatchDbModel::replaceAllDiffRows(const QString &tableName) {
     dbOld.commit();
     if (successCount > 0) {
         bumpDataVersion();
+        QString ship = QFileInfo(m_targetDbPath).fileName();
+        
+        logs.prepend(QString("Total rows replaced: %1").arg(successCount));
+        QString logPath = LogRepository::getInstance()->saveLogToFile("ComparePatch_ReplaceAll", ship, logs);
+        
+        LogRepository::getInstance()->insertLog("Compare & Patch DB (Replace All)", ship, "Success", QString("%1 rows replaced in %2").arg(successCount).arg(tableName), logPath);
         setStatusMessage(QString("✅ Replace All selesai: %1 row di-replace di %2").arg(successCount).arg(tableName));
         return true;
     } else {
@@ -1325,6 +1353,8 @@ bool CompareAndPatchDbModel::deleteAllOldOnlyRows(const QString &tableName) {
 
     QVariantList oldRows = getOldDbRows(tableName);
     int successCount = 0;
+    QStringList logs;
+    logs << QString("==== [DELETE ALL LOGS for %1] ====").arg(tableName);
 
     QSqlQuery q(dbOld);
     q.prepare(QString("DELETE FROM \"%1\" WHERE %2 = :pk").arg(tableName, pkCol));
@@ -1335,6 +1365,7 @@ bool CompareAndPatchDbModel::deleteAllOldOnlyRows(const QString &tableName) {
             q.bindValue(":pk", row.value("_pk"));
             if (q.exec()) {
                 successCount++;
+                logs << QString("Deleted Row PK: %1").arg(row.value("_pk").toString());
             }
         }
     }
@@ -1345,6 +1376,12 @@ bool CompareAndPatchDbModel::deleteAllOldOnlyRows(const QString &tableName) {
             m_oldTableSizes[tableName] -= successCount;
         }
         bumpDataVersion();
+        QString ship = QFileInfo(m_targetDbPath).fileName();
+        
+        logs.prepend(QString("Total rows deleted: %1").arg(successCount));
+        QString logPath = LogRepository::getInstance()->saveLogToFile("ComparePatch_DeleteAll", ship, logs);
+        
+        LogRepository::getInstance()->insertLog("Compare & Patch DB (Delete All Old)", ship, "Success", QString("%1 rows deleted from %2").arg(successCount).arg(tableName), logPath);
         setStatusMessage(QString("✅ Delete All selesai: %1 row dihapus dari %2").arg(successCount).arg(tableName));
         return true;
     } else {
@@ -1361,19 +1398,33 @@ bool CompareAndPatchDbModel::savePendingChanges(const QString &tableName, const 
     if (!QSqlDatabase::contains(m_connOld)) return false;
 
     int ok = 0, fail = 0;
+    QStringList logs;
+    logs << QString("==== [CELL UPDATE LOGS for %1] ====").arg(tableName);
+    
     for (const QVariant &item : changes) {
         QVariantMap change = item.toMap();
         QVariant pk = change.value("pk");
         QString col = change.value("column").toString();
         QVariant val = change.value("value");
 
-        if (updateCell(tableName, pk, col, val))
+        if (updateCell(tableName, pk, col, val)) {
             ok++;
-        else
+            logs << QString("Patched cell OK -> PK: %1, Column: %2").arg(pk.toString(), col);
+        } else {
             fail++;
+            logs << QString("Patched cell FAIL -> PK: %1, Column: %2").arg(pk.toString(), col);
+        }
     }
 
-    setStatusMessage(QString("💾 Simpan selesai: %1 berhasil, %2 gagal").arg(ok).arg(fail));
+    QString msg = QString("💾 Simpan selesai: %1 berhasil, %2 gagal di %3").arg(ok).arg(fail).arg(tableName);
+    setStatusMessage(msg);
+    if(ok > 0) {
+        QString ship = QFileInfo(m_targetDbPath).fileName();
+        logs.prepend(QString("Total patched: %1").arg(ok));
+        QString logPath = LogRepository::getInstance()->saveLogToFile("ComparePatch_CellUpdate", ship, logs);
+        
+        LogRepository::getInstance()->insertLog("Compare & Patch DB (Cell Update)", ship, "Success", QString("%1 cells patched").arg(ok), logPath);
+    }
     bumpDataVersion();
     return fail == 0;
 }

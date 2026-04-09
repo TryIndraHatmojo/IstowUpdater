@@ -1,4 +1,5 @@
 #include "PatchDbModel.h"
+#include "../repository/logrepository.h"
 
 #include <QFile>
 #include <QFileInfo>
@@ -783,6 +784,9 @@ bool PatchDbModel::addAllNewRows(const QString &tableName) {
 
     QVariantList newRows = getNewDbRows(tableName);
     int successCount = 0;
+    QStringList logs;
+    logs << QString("==== [ADD ALL LOGS for %1] ====").arg(tableName);
+
     for (const QVariant &v : newRows) {
         QVariantMap row = v.toMap();
         if (row.value("_status").toString() == "new_only") {
@@ -809,6 +813,7 @@ bool PatchDbModel::addAllNewRows(const QString &tableName) {
                 
                 if (q.exec()) {
                     successCount++;
+                    logs << QString("Added Row PK: %1").arg(pkValue.toString());
                 }
             }
         }
@@ -818,6 +823,12 @@ bool PatchDbModel::addAllNewRows(const QString &tableName) {
     if (successCount > 0) {
         m_oldTableSizes[tableName] += successCount;
         bumpDataVersion();
+        QString ship = m_shipDetails.value("nama", "unknown").toString();
+        
+        logs.prepend(QString("Total rows added: %1").arg(successCount));
+        QString logPath = LogRepository::getInstance()->saveLogToFile("PatchDB_AddAll", ship, logs);
+        
+        LogRepository::getInstance()->insertLog("Patch DB Data (Add All)", ship, "Success", QString("%1 rows added to %2").arg(successCount).arg(tableName), logPath);
         setStatusMessage(QString("✅ Add All selesai: %1 row ditambahkan ke %2").arg(successCount).arg(tableName));
         return true;
     } else {
@@ -841,6 +852,9 @@ bool PatchDbModel::replaceAllDiffRows(const QString &tableName) {
 
     QVariantList newRows = getNewDbRows(tableName);
     int successCount = 0;
+    QStringList logs;
+    logs << QString("==== [REPLACE ALL LOGS for %1] ====").arg(tableName);
+
     for (const QVariant &v : newRows) {
         QVariantMap row = v.toMap();
         if (row.value("_status").toString() == "diff") {
@@ -869,6 +883,7 @@ bool PatchDbModel::replaceAllDiffRows(const QString &tableName) {
 
                 if (q.exec()) {
                     successCount++;
+                    logs << QString("Replaced Row PK: %1").arg(pkValue.toString());
                 }
             }
         }
@@ -877,6 +892,12 @@ bool PatchDbModel::replaceAllDiffRows(const QString &tableName) {
     dbOld.commit();
     if (successCount > 0) {
         bumpDataVersion();
+        QString ship = m_shipDetails.value("nama", "unknown").toString();
+        
+        logs.prepend(QString("Total rows replaced: %1").arg(successCount));
+        QString logPath = LogRepository::getInstance()->saveLogToFile("PatchDB_ReplaceAll", ship, logs);
+        
+        LogRepository::getInstance()->insertLog("Patch DB Data (Replace All)", ship, "Success", QString("%1 rows replaced in %2").arg(successCount).arg(tableName), logPath);
         setStatusMessage(QString("✅ Replace All selesai: %1 row di-replace di %2").arg(successCount).arg(tableName));
         return true;
     } else {
@@ -928,6 +949,8 @@ bool PatchDbModel::deleteAllOldOnlyRows(const QString &tableName) {
 
     QVariantList oldRows = getOldDbRows(tableName);
     int successCount = 0;
+    QStringList logs;
+    logs << QString("==== [DELETE ALL LOGS for %1] ====").arg(tableName);
 
     QSqlQuery q(dbOld);
     q.prepare(QString("DELETE FROM \"%1\" WHERE %2 = :pk").arg(tableName, pkCol));
@@ -938,6 +961,7 @@ bool PatchDbModel::deleteAllOldOnlyRows(const QString &tableName) {
             q.bindValue(":pk", row.value("_pk"));
             if (q.exec()) {
                 successCount++;
+                logs << QString("Deleted Row PK: %1").arg(row.value("_pk").toString());
             }
         }
     }
@@ -948,6 +972,12 @@ bool PatchDbModel::deleteAllOldOnlyRows(const QString &tableName) {
             m_oldTableSizes[tableName] -= successCount;
         }
         bumpDataVersion();
+        QString ship = m_shipDetails.value("nama", "unknown").toString();
+        
+        logs.prepend(QString("Total rows deleted: %1").arg(successCount));
+        QString logPath = LogRepository::getInstance()->saveLogToFile("PatchDB_DeleteAll", ship, logs);
+        
+        LogRepository::getInstance()->insertLog("Patch DB Data (Delete All Old)", ship, "Success", QString("%1 rows deleted from %2").arg(successCount).arg(tableName), logPath);
         setStatusMessage(QString("✅ Delete All selesai: %1 row dihapus dari %2").arg(successCount).arg(tableName));
         return true;
     } else {
@@ -965,19 +995,33 @@ bool PatchDbModel::savePendingChanges(const QString &tableName, const QVariantLi
     if (!QSqlDatabase::contains(m_connOld)) return false;
 
     int ok = 0, fail = 0;
+    QStringList logs;
+    logs << QString("==== [CELL UPDATE LOGS for %1] ====").arg(tableName);
+    
     for (const QVariant &item : changes) {
         QVariantMap change = item.toMap();
         QVariant pk = change.value("pk");
         QString col = change.value("column").toString();
         QVariant val = change.value("value");
 
-        if (updateCell(tableName, pk, col, val))
+        if (updateCell(tableName, pk, col, val)) {
             ok++;
-        else
+            logs << QString("Patched cell OK -> PK: %1, Column: %2").arg(pk.toString(), col);
+        } else {
             fail++;
+            logs << QString("Patched cell FAIL -> PK: %1, Column: %2").arg(pk.toString(), col);
+        }
     }
 
-    setStatusMessage(QString("💾 Simpan selesai: %1 berhasil, %2 gagal").arg(ok).arg(fail));
+    QString msg = QString("💾 Simpan selesai: %1 berhasil, %2 gagal di %3").arg(ok).arg(fail).arg(tableName);
+    setStatusMessage(msg);
+    if(ok > 0) {
+        QString ship = m_shipDetails.value("nama", "unknown").toString();
+        logs.prepend(QString("Total patched: %1").arg(ok));
+        QString logPath = LogRepository::getInstance()->saveLogToFile("PatchDB_CellUpdate", ship, logs);
+        
+        LogRepository::getInstance()->insertLog("Patch DB Data (Cell Update)", ship, "Success", QString("%1 cells patched").arg(ok), logPath);
+    }
     bumpDataVersion();
     return fail == 0;
 }
