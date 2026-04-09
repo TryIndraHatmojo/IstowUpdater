@@ -16,6 +16,7 @@ public:
     // ── Backup Sessions ──────────────────────────────
     int insertSession(const QString &folderName, const QString &shipName, int idship);
     void updateSessionStatus(int sessionId, const QString &status);
+    void deleteSession(int sessionId);
     QJsonArray getAllSessions();
     QJsonObject getSessionById(int sessionId);
     QJsonObject getSessionByFolder(const QString &folderName);

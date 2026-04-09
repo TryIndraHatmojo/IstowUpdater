@@ -142,6 +142,34 @@ bool BackupSessionModel::rollbackSession(int sessionId)
     return restored > 0;
 }
 
+bool BackupSessionModel::deleteSession(int sessionId)
+{
+    if (m_rollingBack || sessionId <= 0) {
+        return false;
+    }
+
+    QJsonObject session = BackupRepository::getInstance()->getSessionById(sessionId);
+    QString folderName = session.value("folder_name").toString();
+    if (folderName.isEmpty()) {
+        setStatusMessage("Hapus gagal: session tidak ditemukan di database.");
+        return false;
+    }
+
+    const QString backupSessionDir = QDir::homePath() + "/iStowV2/IstowUpdater/" + folderName;
+    QDir dir(backupSessionDir);
+    if (dir.exists()) {
+        if (!dir.removeRecursively()) {
+            setStatusMessage("Hapus gagal: tidak dapat menghapus folder backup.");
+            return false;
+        }
+    }
+
+    BackupRepository::getInstance()->deleteSession(sessionId);
+    setStatusMessage("Berhasil menghapus backup session: " + folderName);
+    loadSessions();
+    return true;
+}
+
 bool BackupSessionModel::rollbackAppSession(int sessionId, const QString &targetDirUrl)
 {
     if (m_rollingBack || sessionId <= 0) {

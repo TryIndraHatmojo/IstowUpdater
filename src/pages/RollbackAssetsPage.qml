@@ -114,7 +114,7 @@ Item {
 									Text { text: "Ship Name"; font.bold: true; Layout.preferredWidth: 200; color: "#2D3748" }
 									Text { text: "Folder Name"; font.bold: true; Layout.fillWidth: true; color: "#2D3748" }
 									Text { text: "Created At"; font.bold: true; Layout.preferredWidth: 150; color: "#2D3748" }
-									Text { text: "Aksi"; font.bold: true; horizontalAlignment: Text.AlignHCenter; Layout.preferredWidth: 100; color: "#2D3748" }
+									Text { text: "Aksi"; font.bold: true; horizontalAlignment: Text.AlignHCenter; Layout.preferredWidth: 160; color: "#2D3748" }
 								}
 							}
 
@@ -162,18 +162,35 @@ Item {
 										elide: Text.ElideRight
 									}
 
-									AppButton {
-										text: backupModel.rollingBack ? "Proses..." : "Rollback"
-										Layout.preferredWidth: 100
-										enabled: !backupModel.rollingBack
-										onClicked: {
-											const ok = backupModel.rollbackSession(Number(modelData.id ?? 0))
-											if (ok) {
-												rollbackResult.text = "Rollback berhasil untuk folder: " + (modelData.folder_name ?? "-")
-											} else {
-												rollbackResult.text = "Rollback gagal untuk folder: " + (modelData.folder_name ?? "-")
+									RowLayout {
+										Layout.preferredWidth: 160
+										spacing: 8
+
+										AppButton {
+											text: backupModel.rollingBack ? "..." : "Rollback"
+											Layout.preferredWidth: 80
+											enabled: !backupModel.rollingBack
+											onClicked: {
+												const ok = backupModel.rollbackSession(Number(modelData.id ?? 0))
+												if (ok) {
+													rollbackResult.text = "Rollback berhasil untuk folder: " + (modelData.folder_name ?? "-")
+												} else {
+													rollbackResult.text = "Rollback gagal untuk folder: " + (modelData.folder_name ?? "-")
+												}
+												rollbackDialog.open()
 											}
-											rollbackDialog.open()
+										}
+
+										AppButton {
+											text: "Hapus"
+											tone: "danger"
+											Layout.preferredWidth: 60
+											enabled: !backupModel.rollingBack
+											onClicked: {
+												deleteConfirmDialog.sessionId = Number(modelData.id ?? 0)
+												deleteConfirmDialog.folderName = modelData.folder_name ?? "-"
+												deleteConfirmDialog.open()
+											}
 										}
 									}
 								}
@@ -282,6 +299,32 @@ Item {
 			text: ""
 			wrapMode: Text.Wrap
 			width: 320
+		}
+	}
+
+	Dialog {
+		id: deleteConfirmDialog
+		modal: true
+		title: "Konfirmasi Hapus Backup"
+		anchors.centerIn: Overlay.overlay
+		standardButtons: Dialog.Yes | Dialog.No
+
+		property int sessionId: 0
+		property string folderName: ""
+
+		Label {
+			text: "Apakah Anda yakin ingin menghapus folder backup: " + deleteConfirmDialog.folderName + "?"
+			wrapMode: Text.Wrap
+			width: 320
+		}
+
+		onAccepted: {
+			if (backupModel.deleteSession(deleteConfirmDialog.sessionId)) {
+				rollbackResult.text = "Berhasil menghapus folder: " + deleteConfirmDialog.folderName
+			} else {
+				rollbackResult.text = "Gagal menghapus folder: " + deleteConfirmDialog.folderName
+			}
+			rollbackDialog.open()
 		}
 	}
 }

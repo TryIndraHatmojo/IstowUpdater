@@ -29,6 +29,7 @@ public:
     Q_INVOKABLE void reload();
     Q_INVOKABLE void clearLogs();
     Q_INVOKABLE bool rollbackSession(int sessionId);
+    Q_INVOKABLE bool deleteSession(int sessionId);
     Q_INVOKABLE bool rollbackAppSession(int sessionId, const QString &targetDirUrl);
     Q_INVOKABLE bool backupOldIstow(const QString &directoryUrl);
     Q_INVOKABLE bool uninstallOldIstow(const QString &directoryUrl);

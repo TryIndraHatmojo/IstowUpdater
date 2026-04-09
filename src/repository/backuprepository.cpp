@@ -108,6 +108,15 @@ void BackupRepository::updateSessionStatus(int sessionId, const QString &status)
     this->executeQuery(query);
 }
 
+void BackupRepository::deleteSession(int sessionId)
+{
+    QString queryRecords = QString("DELETE FROM backup_records WHERE session_id = %1").arg(sessionId);
+    this->executeQuery(queryRecords);
+
+    QString querySession = QString("DELETE FROM backup_sessions WHERE id = %1").arg(sessionId);
+    this->executeQuery(querySession);
+}
+
 QJsonArray BackupRepository::getAllSessions()
 {
     QString query = "SELECT * FROM backup_sessions ORDER BY created_at DESC";
