@@ -811,17 +811,34 @@ bool CompareAndPatchDbModel::syncData() {
     m_diffTableList = diffTables;
     m_allTableList = finalAllTables;
 
+    QStringList compareLogs;
+    compareLogs << "==== [DATABASE DATA COMPARE LOGS] ====";
+    compareLogs << QString("Total Tabel Dievaluasi : %1").arg(m_allTableList.size());
+    compareLogs << QString("Total Tabel Berbeda    : %1\n").arg(m_diffTableList.size());
+
+    if (!m_diffTableList.isEmpty()) {
+        compareLogs << "Rincian Tabel yang Memiliki Perbedaan Data:";
+        for (const QString &table : m_diffTableList) {
+            int nCount = m_newTableSizes.value(table, 0);
+            int oCount = m_oldTableSizes.value(table, 0);
+            compareLogs << QString("  - %1 (New DB: %2 baris | Target DB: %3 baris)").arg(table).arg(nCount).arg(oCount);
+        }
+    } else {
+        compareLogs << "Kedua database identik (tidak ada perbedaan data).";
+    }
+
     emit allTableListChanged();
     emit diffTableListChanged();
 
-    QString msg = QString("✅ Compare data selesai: %1 tabel total, %2 tabel memiliki perbedaan data")
-                         .arg(m_allTableList.size()).arg(m_diffTableList.size());
-    setStatusMessage(msg);
+    QString targetShip = QFileInfo(m_targetDbPath).fileName();
+    QString logPathData = LogRepository::getInstance()->saveLogToFile("CompareDB_Data", targetShip, compareLogs);
+
+    QString summaryMsg = QString("Compare data selesai: Ditemukan perbedaan pada %1 dari total %2 tabel.").arg(m_diffTableList.size()).arg(m_allTableList.size());
+    setStatusMessage(summaryMsg);
     
     // Log result
-    QString targetShip = QFileInfo(m_targetDbPath).fileName();
-    QString logPath = LogRepository::getInstance()->saveLogToFile("CompareDB", targetShip, m_structureLogs);
-    LogRepository::getInstance()->insertLog("Compare DB", targetShip, "Success", QString("Total differences: %1 tables").arg(m_diffTableList.size()), logPath);
+    QString logPathStruct = LogRepository::getInstance()->saveLogToFile("CompareDB_Structure", targetShip, m_structureLogs);
+    LogRepository::getInstance()->insertLog("Compare DB (Sync Data)", targetShip, "Success", summaryMsg, logPathData);
 
     setComparing(false);
     setLoaded(true);
@@ -1068,9 +1085,14 @@ bool CompareAndPatchDbModel::updateCell(const QString &tableName, const QVariant
     q.bindValue(":pk", pkValue);
 
     if (!q.exec()) {
-        setStatusMessage("❌ Update gagal: " + q.lastError().text());
+        QString err = q.lastError().text();
+        setStatusMessage("❌ Update gagal: " + err);
+        LogRepository::getInstance()->insertLog("Compare DB (Cell Update)", "Custom Patch", "Failed", "PK: " + pkValue.toString() + " - " + err);
         return false;
     }
+
+    QString msg = QString("Cell %1 updated in %2 for %3=%4").arg(column).arg(tableName).arg(pk).arg(pkValue.toString());
+    LogRepository::getInstance()->insertLog("Compare DB (Cell Update)", "Custom Patch", "Success", msg);
 
     bumpDataVersion();
     return true;
@@ -1120,12 +1142,17 @@ bool CompareAndPatchDbModel::replaceRowById(const QString &tableName, const QVar
         q.bindValue(":pk", pkValue);
 
         if (!q.exec()) {
-            setStatusMessage("❌ Replace gagal: " + q.lastError().text());
+            QString err = q.lastError().text();
+            setStatusMessage("❌ Replace gagal: " + err);
+            LogRepository::getInstance()->insertLog("Compare DB (Replace Row)", "Custom Patch", "Failed", "PK: " + pkValue.toString() + " - " + err);
             return false;
         }
     } else {
         return addRowToOldDb(tableName, pkValue);
     }
+
+    QString msg = QString("Row replaced in %1 for %2=%3").arg(tableName).arg(pk).arg(pkValue.toString());
+    LogRepository::getInstance()->insertLog("Compare DB (Replace Row)", "Custom Patch", "Success", msg);
 
     bumpDataVersion();
     setStatusMessage("✅ Row berhasil di-replace (PK: " + pkValue.toString() + ")");
@@ -1167,9 +1194,15 @@ bool CompareAndPatchDbModel::addRowToOldDb(const QString &tableName, const QVari
     }
 
     if (!q.exec()) {
-        setStatusMessage("❌ Add row gagal: " + q.lastError().text());
+        QString err = q.lastError().text();
+        setStatusMessage("❌ Add row gagal: " + err);
+        LogRepository::getInstance()->insertLog("Compare DB (Add Row)", "Custom Patch", "Failed", "PK: " + pkValue.toString() + " - " + err);
         return false;
     }
+
+    QString pk = detectPrimaryKey(tableName, m_connNew);
+    QString msg = QString("Row added to %1 for %2=%3").arg(tableName).arg(pk).arg(pkValue.toString());
+    LogRepository::getInstance()->insertLog("Compare DB (Add Row)", "Custom Patch", "Success", msg);
 
     bumpDataVersion();
     setStatusMessage("✅ Row berhasil ditambahkan (PK: " + pkValue.toString() + ")");
@@ -1326,9 +1359,14 @@ bool CompareAndPatchDbModel::deleteOldRowById(const QString &tableName, const QV
     q.bindValue(":pk", pkValue);
 
     if (!q.exec()) {
-        setStatusMessage("❌ Delete row gagal: " + q.lastError().text());
+        QString err = q.lastError().text();
+        setStatusMessage("❌ Delete row gagal: " + err);
+        LogRepository::getInstance()->insertLog("Compare DB (Delete Row)", "Custom Patch", "Failed", "PK: " + pkValue.toString() + " - " + err);
         return false;
     }
+
+    QString msg = QString("Row deleted from %1 where %2=%3").arg(tableName).arg(pk).arg(pkValue.toString());
+    LogRepository::getInstance()->insertLog("Compare DB (Delete Row)", "Custom Patch", "Success", msg);
 
     if (m_oldTableSizes.contains(tableName) && m_oldTableSizes[tableName] > 0) {
         m_oldTableSizes[tableName]--;
