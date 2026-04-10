@@ -12,20 +12,6 @@ Rectangle {
         id: logModel
     }
 
-    FileDialog {
-        id: exportDialog
-        title: "Export Logs to CSV"
-        nameFilters: ["CSV files (*.csv)", "All files (*)"]
-        fileMode: FileDialog.SaveFile
-        onAccepted: {
-            if (logModel.exportToCsv(exportDialog.currentFile)) {
-                exportStatus.text = "✅ Berhasil ekspor log."
-            } else {
-                exportStatus.text = "❌ Gagal ekspor log."
-            }
-        }
-    }
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 16
@@ -47,18 +33,6 @@ Rectangle {
                 text: "Refresh Logs"
                 onClicked: logModel.loadLogs()
             }
-            
-            AppButton {
-                text: "Export to CSV"
-                onClicked: exportDialog.open()
-            }
-        }
-        
-        Text {
-            id: exportStatus
-            text: ""
-            color: "#666"
-            font.italic: true
         }
 
         // Table

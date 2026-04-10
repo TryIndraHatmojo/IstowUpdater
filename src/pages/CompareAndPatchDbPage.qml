@@ -7,23 +7,6 @@ import IstowUpdater
 Item {
     id: root
 
-    LogModel { id: logModelExporter }
-    
-    FileDialog {
-        id: logExportDialog
-        title: "Export Logs to TXT"
-        nameFilters: ["Text files (*.txt)", "All files (*)"]
-        fileMode: FileDialog.SaveFile
-        property var logsToExport: []
-        onAccepted: {
-            if (logModelExporter.exportStringListTxt(logsToExport, selectedFile)) {
-                console.log("✅ Berhasil ekspor log structure.")
-            } else {
-                console.log("❌ Gagal ekspor log structure.")
-            }
-        }
-    }
-
     // ── CompareAndPatchDbModel instance ──────────────
     CompareAndPatchDbModel {
         id: compareModel
@@ -457,18 +440,6 @@ Item {
                             font.pixelSize: 14
                             font.bold: true
                             color: "#2A4365"
-                        }
-                        
-                        Item { Layout.fillWidth: true }
-                        
-                        Button {
-                            text: "Export Log"
-                            height: 24
-                            font.pixelSize: 11
-                            onClicked: {
-                                logExportDialog.logsToExport = compareModel.structureLogs
-                                logExportDialog.open()
-                            }
                         }
                     }
 

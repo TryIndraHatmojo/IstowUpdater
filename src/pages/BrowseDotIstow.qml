@@ -26,25 +26,6 @@ Item {
         }
     }
 
-    LogModel {
-        id: logModelExporter
-    }
-
-    FileDialog {
-        id: logExportDialog
-        title: "Export Logs to TXT"
-        nameFilters: ["Text files (*.txt)", "All files (*)"]
-        fileMode: FileDialog.SaveFile
-        property var logsToExport: []
-        onAccepted: {
-            if (logModelExporter.exportStringListTxt(logsToExport, selectedFile)) {
-                console.log("✅ Berhasil ekspor local log.")
-            } else {
-                console.log("❌ Gagal ekspor local log.")
-            }
-        }
-    }
-
     // ── FileDialog ─────────────────────────────────────
     FileDialog {
         id: fileDialog
@@ -436,18 +417,6 @@ Item {
                                     font.bold: true
                                     color: "#1A3A5C"
                                 }
-                                
-                                Item { Layout.fillWidth: true }
-                                
-                                Button {
-                                    text: "Export Log"
-                                    height: 24
-                                    font.pixelSize: 11
-                                    onClicked: {
-                                        logExportDialog.logsToExport = importer.importLogs
-                                        logExportDialog.open()
-                                    }
-                                }
                             }
 
                             Rectangle {
@@ -498,18 +467,6 @@ Item {
                                     font.pixelSize: 14
                                     font.bold: true
                                     color: "#2A4365"
-                                }
-                                
-                                Item { Layout.fillWidth: true }
-                                
-                                Button {
-                                    text: "Export Log"
-                                    height: 24
-                                    font.pixelSize: 11
-                                    onClicked: {
-                                        logExportDialog.logsToExport = importer.dbCompareLogs
-                                        logExportDialog.open()
-                                    }
                                 }
                             }
 
