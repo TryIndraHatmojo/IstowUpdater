@@ -77,29 +77,33 @@ Rectangle {
                     
                     delegate: Rectangle {
                         width: ListView.view.width
-                        height: Math.max(36, detailText.implicitHeight + 16)
+                        height: Math.max(36, rowLayout.implicitHeight + 16)
                         color: index % 2 === 0 ? "#FAFAFA" : "#FFFFFF"
                         
                         RowLayout {
-                            anchors.fill: parent
+                            id: rowLayout
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
                             anchors.leftMargin: 16
                             anchors.rightMargin: 16
                             spacing: 16
                             
-                            Text { text: model.timestamp; Layout.preferredWidth: 200; font.pixelSize: 13 }
-                            Text { text: model.action; Layout.preferredWidth: 200; font.pixelSize: 13 }
-                            Text { text: model.target_ship; Layout.preferredWidth: 150; font.pixelSize: 13 }
+                            Text { text: model.timestamp; Layout.preferredWidth: 200; Layout.maximumWidth: 200; wrapMode: Text.Wrap; font.pixelSize: 13 }
+                            Text { text: model.action; Layout.preferredWidth: 200; Layout.maximumWidth: 200; wrapMode: Text.Wrap; font.pixelSize: 13 }
+                            Text { text: model.target_ship; Layout.preferredWidth: 150; Layout.maximumWidth: 150; wrapMode: Text.Wrap; font.pixelSize: 13 }
                             Text { 
                                 text: model.status
                                 color: model.status === "Success" ? "#2E7D32" : (model.status === "Failed" ? "#C62828" : "#455A64")
                                 font.bold: true
                                 Layout.preferredWidth: 100 
+                                Layout.maximumWidth: 100 
+                                wrapMode: Text.Wrap
                                 font.pixelSize: 13
                             }
                             Text { 
                                 id: detailText
                                 text: model.status_message
-                                elide: Text.ElideRight
                                 wrapMode: Text.Wrap
                                 Layout.fillWidth: true
                                 font.pixelSize: 13
